@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>html{height:100%;overflow:hidden}body{height:100%;overflow:hidden;position:fixed;width:100%}</style>
+<title>Portafoglio</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0c0c14;display:flex;justify-content:center;height:100%;overflow:hidden}
+#root{width:100%;max-width:480px;height:100%}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#2a2a3e;border-radius:2px}
+input:focus{border-color:#5B8BF5!important}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.4)}
+.icon-btn{background:none;border:none;cursor:pointer;color:#444;font-size:15px;padding:4px 5px;border-radius:6px;transition:all .15s}
+.icon-btn:hover{color:#5B8BF5;background:#5B8BF518}
+.icon-btn.del:hover{color:#F4736E!important;background:#F4736E18!important}
+.icon-btn.sm{font-size:13px}
+.btn-primary{flex:1;background:linear-gradient(135deg,#5B8BF5,#2FC9A0);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-ghost{background:none;border:1px solid #2a2a3e;color:#777;border-radius:10px;padding:13px 18px;font-size:14px;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-ghost:hover{border-color:#444;color:#bbb}
+.outline-btn{background:none;border:1px dashed #2a2a3e;color:#555;border-radius:10px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s}
+.outline-btn:hover{border-color:#5B8BF5;color:#5B8BF5}
+.cat-pick{border:1px solid;border-radius:20px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;background:transparent}
+.chip-btn{margin-top:6px;background:#5B8BF518;color:#5B8BF5;border:1px solid #5B8BF533;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:inherit;width:100%}
+.chip-btn:hover{background:#5B8BF530}
+.link-btn{background:none;border:none;cursor:pointer;font-family:inherit}
+.tab-btn:hover{opacity:.8}
+.search-inp{width:100%;background:#10101a;border:1px solid #1a1a2c;border-radius:10px;padding:10px 14px 10px 36px;color:#e0e0ee;font-size:14px;font-family:inherit;outline:none}
+.search-inp:focus{border-color:#5B8BF5!important}
+.export-btn{background:none;border:1px solid #2a2a3e;color:#888;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.export-btn:hover{border-color:#5B8BF5;color:#5B8BF5}
+.month-nav-btn{background:none;border:none;cursor:pointer;color:#666;font-size:22px;padding:2px 8px;line-height:1;transition:color .15s}
+.month-nav-btn:hover{color:#e8e8f0}
+.month-nav-btn:disabled{color:#2a2a3e;cursor:default}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useEffect, useCallback } = React;
+
+// ── localStorage helpers ──
+const lsGet = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; } };
+const lsSet = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} };
+
+// ── utils ──
+const uid = () => Math.random().toString(36).slice(2,9);
+const todayStr = () => new Date().toISOString().split("T")[0];
+const fmt = (n) => new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(n||0);
+const pad = (n) => String(n).padStart(2,"0");
+const NOW = new Date();
+const CY = NOW.getFullYear();
+const CM = NOW.getMonth();
+const MONTHS = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+
+// ── constants ──
+const PM = [
+  {id:"card", label:"Carta",    icon:"💳", color:"#5B8BF5"},
+  {id:"cash", label:"Contanti", icon:"💵", color:"#2FC9A0"},
+  {id:"bank", label:"Bonifico", icon:"🏦", color:"#A07DF6"},
+];
+const PALETTE = ["#5B8BF5","#2FC9A0","#F4736E","#A07DF6","#F5A623","#50C8E8","#E87E50","#7EC850"];
+const ICONS   = ["🔄","🧾","🛒","🎉","📦","🏠","🚗","💊","✈️","👗","🎮","📚","💡","🐾","🍕","💪"];
+
+// ── seed ──
+const SEED_CATS = [
+  {id:"c1",name:"Abbonamenti",icon:"🔄",color:"#5B8BF5"},
+  {id:"c2",name:"Bollette",   icon:"🧾",color:"#F5A623"},
+  {id:"c3",name:"Cibo",       icon:"🛒",color:"#2FC9A0"},
+  {id:"c4",name:"Svago",      icon:"🎉",color:"#F4736E"},
+  {id:"c5",name:"Altro",      icon:"📦",color:"#A07DF6"},
+];
+const SEED_RECUR = [
+  {id:"r1",catId:"c1",name:"Netflix",     amount:15.99,day:7},
+  {id:"r2",catId:"c1",name:"Amazon Prime",amount:4.99, day:12},
+];
+const SEED_BILLS = [
+  {id:"b1",catId:"c2",name:"Luce", day:20},
+  {id:"b2",catId:"c2",name:"Gas",  day:20},
+  {id:"b3",catId:"c2",name:"Acqua",day:15},
+];
+const SEED_EXP = [
+  {id:"e1",catId:"c1",name:"Netflix",      amount:15.99,date:`${CY}-${pad(CM+1)}-07`,rid:"r1",bid:null,pay:"card"},
+  {id:"e2",catId:"c1",name:"Amazon Prime", amount:4.99, date:`${CY}-${pad(CM+1)}-12`,rid:"r2",bid:null,pay:"card"},
+  {id:"e3",catId:"c2",name:"Luce",         amount:78.40,date:`${CY}-${pad(CM+1)}-20`,rid:null,bid:"b1",pay:"bank"},
+  {id:"e4",catId:"c3",name:"Esselunga",    amount:73.40,date:`${CY}-${pad(CM+1)}-14`,rid:null,bid:null,pay:"card"},
+  {id:"e5",catId:"c4",name:"Ristorante",   amount:48.00,date:`${CY}-${pad(CM+1)}-18`,rid:null,bid:null,pay:"cash"},
+  {id:"e6",catId:"c3",name:"Mercato",      amount:22.00,date:`${CY}-${pad(CM+1)}-10`,rid:null,bid:null,pay:"cash"},
+];
+
+// ── styles ──
+const S = {
+  root:      {display:"flex",flexDirection:"column",height:"100%",background:"#0c0c14",color:"#d0d0e0",fontFamily:"'DM Sans','Segoe UI',sans-serif",maxWidth:480,margin:"0 auto",position:"relative",overflow:"hidden"},
+  screen:    {flex:1,overflowY:"auto",overflowX:"hidden"},
+  page:      {padding:"20px 18px 12px"},
+  header:    {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20},
+  hLeft:     {display:"flex",flexDirection:"column",gap:4},
+  hSub:      {fontSize:11,color:"#555",letterSpacing:1.5,textTransform:"uppercase"},
+  hTitle:    {display:"flex",alignItems:"center",gap:6},
+  hTitleTxt: {fontSize:22,fontWeight:800,color:"#e8e8f0",letterSpacing:-.5},
+  plusBtn:   {width:42,height:42,borderRadius:12,background:"#5B8BF522",border:"none",fontSize:22,color:"#5B8BF5",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0},
+  totalCard: {background:"linear-gradient(135deg,#5B8BF5,#2FC9A0)",borderRadius:20,padding:"22px 20px",marginBottom:22,boxShadow:"0 8px 32px #5B8BF530"},
+  tLabel:    {fontSize:11,color:"rgba(255,255,255,.7)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:5},
+  tAmt:      {fontSize:38,fontWeight:800,color:"#fff",letterSpacing:-1,marginBottom:3},
+  tSub:      {fontSize:12,color:"rgba(255,255,255,.7)"},
+  secTitle:  {fontSize:10,letterSpacing:2,textTransform:"uppercase",color:"#444",marginBottom:11},
+  catRow:    {display:"flex",alignItems:"center",gap:12,marginBottom:13},
+  catIcon:   {width:36,height:36,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0},
+  barBg:     {height:5,background:"#1a1a2c",borderRadius:3,overflow:"hidden"},
+  barFill:   {height:"100%",borderRadius:3,transition:"width .5s"},
+  expRow:    {display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #13131e"},
+  chip:      {flexShrink:0,background:"#10101a",border:"1px solid #2a2a3e",borderRadius:14,padding:"11px 13px",display:"flex",flexDirection:"column",alignItems:"flex-start",minWidth:116,gap:2},
+  setRow:    {display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid #13131e"},
+  botNav:    {display:"flex",background:"#10101a",borderTop:"1px solid #1a1a2c",padding:"8px 0 10px",flexShrink:0},
+  tabBtn:    {flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"4px 0"},
+  sCard:     {background:"#10101a",border:"1px solid #1a1a2c",borderRadius:16,padding:"16px 15px",marginBottom:12},
+  overlay:   {position:"absolute",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"flex-end",zIndex:50,backdropFilter:"blur(4px)"},
+  sheetBox:  {background:"#13131e",borderRadius:"20px 20px 0 0",padding:"14px 20px 28px",width:"100%",maxHeight:"90%",overflowY:"auto",border:"1px solid #1a1a2c"},
+  handle:    {width:40,height:4,background:"#2a2a3e",borderRadius:2,margin:"0 auto 18px"},
+  shTitle:   {fontSize:17,fontWeight:800,color:"#e8e8f0",marginBottom:18},
+  shBtns:    {display:"flex",gap:10,marginTop:18},
+  inp:       {width:"100%",background:"#0c0c14",border:"1px solid #2a2a3e",borderRadius:10,padding:"11px 12px",color:"#e0e0ee",fontSize:14,fontFamily:"inherit",outline:"none"},
+  seeAll:    {display:"block",textAlign:"center",width:"100%",marginTop:12,fontSize:13,color:"#5B8BF5",background:"none",border:"none",cursor:"pointer",padding:8},
+};
+
+// ── tiny helpers ──
+const Field = ({label,children}) => (
+  <div style={{marginBottom:15}}>
+    <div style={{fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:"#555",marginBottom:6}}>{label}</div>
+    {children}
+  </div>
+);
+const Empty = ({msg}) => <div style={{textAlign:"center",padding:"26px 0",color:"#444",fontSize:13}}>{msg}</div>;
+const MonthNav = ({month,year,onPrev,onNext}) => {
+  const isCurrent = month===CM && year===CY;
+  return (
+    <div style={S.hTitle}>
+      <button className="month-nav-btn" onClick={onPrev}>‹</button>
+      <span style={S.hTitleTxt}>{MONTHS[month].slice(0,3)} {year}</span>
+      <button className="month-nav-btn" onClick={onNext} disabled={isCurrent}>›</button>
+    </div>
+  );
+};
+
+// ── ExpRow ──
+function ExpRow({e,cats,onEdit,onDel}){
+  const c = cats.find(x=>x.id===e.catId)||{name:"?",icon:"📦",color:"#888"};
+  const pm = PM.find(p=>p.id===e.pay);
+  return (
+    <div style={S.expRow}>
+      <div style={{...S.catIcon,background:c.color+"22",color:c.color}}>{c.icon}</div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:14,color:"#d0d0e8",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div>
+        <div style={{fontSize:11,color:"#555",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+          {new Date(e.date).toLocaleDateString("it-IT",{day:"2-digit",month:"short"})}
+          {" · "}<span style={{color:c.color}}>{c.name}</span>
+          {pm && <span style={{background:"#1a1a2c",borderRadius:4,padding:"1px 5px"}}>{pm.icon} {pm.label}</span>}
+          {e.rid && <span style={{fontSize:10,color:"#5B8BF5"}}>🔄</span>}
+          {e.bid && <span style={{fontSize:10,color:"#F5A623"}}>🧾</span>}
+        </div>
+      </div>
+      <div style={{fontSize:14,fontWeight:700,color:"#d0d0e8",marginRight:4,whiteSpace:"nowrap"}}>{fmt(e.amount)}</div>
+      <button className="icon-btn sm" onClick={onEdit}>✏️</button>
+      <button className="icon-btn sm del" onClick={onDel}>🗑️</button>
+    </div>
+  );
+}
+
+// ── CalendarView ──
+function CalendarView({monthExps,cats,selectedDay,setSelectedDay,viewMonth,viewYear,onEdit,onDel}){
+  const daysInMonth = new Date(viewYear,viewMonth+1,0).getDate();
+  const offset = (new Date(viewYear,viewMonth,1).getDay()+6)%7;
+  const todayNum = NOW.getMonth()===viewMonth && NOW.getFullYear()===viewYear ? NOW.getDate() : null;
+
+  const byDay = {};
+  monthExps.forEach(e => {
+    const d = new Date(e.date).getDate();
+    if(!byDay[d]) byDay[d]=[];
+    byDay[d].push(e);
+  });
+
+  const dayExps   = selectedDay ? (byDay[selectedDay]||[]) : [];
+  const dayTotal  = dayExps.reduce((s,e)=>s+e.amount,0);
+
+  const pmBreakdown = PM.map(p=>({
+    ...p,
+    tot:   dayExps.filter(e=>e.pay===p.id).reduce((s,e)=>s+e.amount,0),
+    count: dayExps.filter(e=>e.pay===p.id).length,
+  })).filter(p=>p.count>0);
+
+  const DAYS = ["L","M","M","G","V","S","D"];
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:4}}>
+        {DAYS.map((d,i)=>(
+          <div key={i} style={{textAlign:"center",fontSize:10,color:"#444",padding:"3px 0",letterSpacing:1}}>{d}</div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:18}}>
+        {Array.from({length:offset}).map((_,i)=><div key={"x"+i}/>)}
+        {Array.from({length:daysInMonth}).map((_,i)=>{
+          const day  = i+1;
+          const has  = !!(byDay[day]&&byDay[day].length);
+          const isSel = selectedDay===day;
+          const isToday = todayNum===day;
+          const dots = has ? [...new Set(byDay[day].map(e=>{const c=cats.find(x=>x.id===e.catId); return c?c.color:"#888";}))] .slice(0,3) : [];
+          return (
+            <button key={day} onClick={()=>setSelectedDay(isSel?null:day)}
+              style={{aspectRatio:"1",borderRadius:9,
+                border: isSel?"1px solid #5B8BF5":isToday?"1px solid #333":"1px solid transparent",
+                background: isSel?"#5B8BF522":has?"#10101a":"transparent",
+                cursor: has||isToday?"pointer":"default",
+                display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,padding:2}}>
+              <span style={{fontSize:12,fontWeight:isToday?700:400,color:isSel?"#5B8BF5":isToday?"#e8e8f0":"#666"}}>{day}</span>
+              {dots.length>0 && (
+                <div style={{display:"flex",gap:2}}>
+                  {dots.map((col,ci)=><div key={ci} style={{width:4,height:4,borderRadius:"50%",background:col}}/>)}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedDay ? (
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={S.secTitle}>{selectedDay} {MONTHS[viewMonth]}</div>
+            <div style={{fontSize:17,fontWeight:800,color:"#5B8BF5"}}>{fmt(dayTotal)}</div>
+          </div>
+          {dayExps.length===0 ? <Empty msg="Nessuna spesa in questo giorno"/> : (
+            <div>
+              {pmBreakdown.length>0 && (
+                <div style={{display:"flex",gap:8,marginBottom:14}}>
+                  {pmBreakdown.map(p=>(
+                    <div key={p.id} style={{flex:1,background:"#0c0c14",border:"1px solid "+p.color+"44",borderRadius:12,padding:"10px 8px",textAlign:"center"}}>
+                      <div style={{fontSize:18,marginBottom:2}}>{p.icon}</div>
+                      <div style={{fontSize:10,color:"#666",marginBottom:2}}>{p.label}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:p.color}}>{fmt(p.tot)}</div>
+                      <div style={{fontSize:10,color:"#444"}}>{p.count} {p.count===1?"spesa":"spese"}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {dayExps.map(e=>(
+                <ExpRow key={e.id} e={e} cats={cats} onEdit={()=>onEdit(e)} onDel={()=>onDel(e.id)}/>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <Empty msg="Tocca un giorno colorato per vedere le spese"/>
+      )}
+    </div>
+  );
+}
+
+// ── Forms ──
+function ExpForm({cats,data,onSave,onClose}){
+  const [f,setF] = useState(data||{catId:cats[0]?.id||"",name:"",amount:"",date:todayStr(),rid:null,bid:null,pay:"card"});
+  const ok = f.name.trim() && +f.amount>0 && f.catId;
+  return (
+    <>
+      <div style={S.shTitle}>{data&&data.id?"Modifica spesa":"Nuova spesa"}</div>
+      <Field label="Descrizione">
+        <input style={S.inp} placeholder="Es. Esselunga" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+      </Field>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <Field label="Importo €">
+          <input style={S.inp} type="number" min="0" step="0.01" placeholder="0.00" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))}/>
+        </Field>
+        <Field label="Data">
+          <input style={S.inp} type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+        </Field>
+      </div>
+      <Field label="Pagamento">
+        <div style={{display:"flex",gap:8}}>
+          {PM.map(pm=>(
+            <button key={pm.id} onClick={()=>setF(p=>({...p,pay:pm.id}))}
+              style={{flex:1,padding:"9px 6px",borderRadius:10,
+                border:f.pay===pm.id?"1px solid #5B8BF5":"1px solid #2a2a3e",
+                background:f.pay===pm.id?"#5B8BF522":"transparent",
+                color:f.pay===pm.id?"#5B8BF5":"#666",
+                cursor:"pointer",fontFamily:"inherit",fontSize:12,
+                display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <span style={{fontSize:19}}>{pm.icon}</span>
+              <span>{pm.label}</span>
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Categoria">
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {cats.map(c=>(
+            <button key={c.id} className="cat-pick"
+              style={{borderColor:f.catId===c.id?c.color:"#2a2a3e",background:f.catId===c.id?c.color+"22":"transparent",color:f.catId===c.id?c.color:"#666"}}
+              onClick={()=>setF(p=>({...p,catId:c.id}))}>
+              {c.icon} {c.name}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <div style={S.shBtns}>
+        <button className="btn-primary" disabled={!ok} onClick={()=>ok&&onSave({...f,amount:+f.amount})}>{data&&data.id?"Salva":"Aggiungi"}</button>
+        <button className="btn-ghost" onClick={onClose}>Annulla</button>
+      </div>
+    </>
+  );
+}
+
+function RecurForm({cats,data,onSave,onClose}){
+  const defCat = cats.find(c=>c.name==="Abbonamenti")?.id||cats[0]?.id||"";
+  const [f,setF] = useState(data||{catId:defCat,name:"",amount:"",day:1});
+  const ok = f.name.trim() && +f.amount>0 && f.catId;
+  return (
+    <>
+      <div style={S.shTitle}>{data?"Modifica abbonamento":"Nuovo abbonamento"}</div>
+      <Field label="Nome"><input style={S.inp} placeholder="Es. Netflix" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/></Field>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <Field label="Importo €"><input style={S.inp} type="number" min="0" step="0.01" placeholder="0.00" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))}/></Field>
+        <Field label="Giorno del mese"><input style={S.inp} type="number" min="1" max="31" value={f.day} onChange={e=>setF(p=>({...p,day:+e.target.value}))}/></Field>
+      </div>
+      <Field label="Categoria">
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {cats.map(c=>(
+            <button key={c.id} className="cat-pick"
+              style={{borderColor:f.catId===c.id?c.color:"#2a2a3e",background:f.catId===c.id?c.color+"22":"transparent",color:f.catId===c.id?c.color:"#666"}}
+              onClick={()=>setF(p=>({...p,catId:c.id}))}>
+              {c.icon} {c.name}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <div style={S.shBtns}>
+        <button className="btn-primary" disabled={!ok} onClick={()=>ok&&onSave({...f,amount:+f.amount})}>{data?"Salva":"Aggiungi"}</button>
+        <button className="btn-ghost" onClick={onClose}>Annulla</button>
+      </div>
+    </>
+  );
+}
+
+function BillForm({cats,data,onSave,onClose}){
+  const defCat = cats.find(c=>c.name==="Bollette")?.id||cats[0]?.id||"";
+  const [f,setF] = useState(data||{catId:defCat,name:"",day:1});
+  const ok = f.name.trim() && f.catId;
+  return (
+    <>
+      <div style={S.shTitle}>{data?"Modifica bolletta":"Nuova bolletta"}</div>
+      <div style={{background:"#1a1a2c",borderRadius:10,padding:"9px 13px",marginBottom:16,fontSize:12,color:"#888",lineHeight:1.6}}>
+        💡 Importo variabile: ogni mese premi "✏️ Inserisci" per annotare quanto hai pagato.
+      </div>
+      <Field label="Nome"><input style={S.inp} placeholder="Es. Luce" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/></Field>
+      <Field label="Giorno di scadenza"><input style={S.inp} type="number" min="1" max="31" value={f.day} onChange={e=>setF(p=>({...p,day:+e.target.value}))}/></Field>
+      <Field label="Categoria">
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {cats.map(c=>(
+            <button key={c.id} className="cat-pick"
+              style={{borderColor:f.catId===c.id?c.color:"#2a2a3e",background:f.catId===c.id?c.color+"22":"transparent",color:f.catId===c.id?c.color:"#666"}}
+              onClick={()=>setF(p=>({...p,catId:c.id}))}>
+              {c.icon} {c.name}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <div style={S.shBtns}>
+        <button className="btn-primary" disabled={!ok} onClick={()=>ok&&onSave(f)}>{data?"Salva":"Aggiungi"}</button>
+        <button className="btn-ghost" onClick={onClose}>Annulla</button>
+      </div>
+    </>
+  );
+}
+
+function CatForm({data,onSave,onClose}){
+  const [f,setF] = useState(data||{name:"",icon:"📦",color:PALETTE[0]});
+  const ok = f.name.trim();
+  return (
+    <>
+      <div style={S.shTitle}>{data?"Modifica categoria":"Nuova categoria"}</div>
+      <Field label="Nome"><input style={S.inp} placeholder="Es. Sport" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/></Field>
+      <Field label="Icona">
+        <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+          {ICONS.map(ic=>(
+            <button key={ic} onClick={()=>setF(p=>({...p,icon:ic}))}
+              style={{fontSize:21,background:f.icon===ic?"#5B8BF522":"transparent",border:f.icon===ic?"1px solid #5B8BF5":"1px solid #2a2a3e",borderRadius:8,padding:"4px 7px",cursor:"pointer"}}>
+              {ic}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Colore">
+        <div style={{display:"flex",gap:9,flexWrap:"wrap"}}>
+          {PALETTE.map(col=>(
+            <button key={col} onClick={()=>setF(p=>({...p,color:col}))}
+              style={{width:30,height:30,borderRadius:"50%",background:col,border:f.color===col?"3px solid #fff":"3px solid transparent",cursor:"pointer"}}/>
+          ))}
+        </div>
+      </Field>
+      <div style={S.shBtns}>
+        <button className="btn-primary" disabled={!ok} onClick={()=>ok&&onSave(f)}>{data?"Salva":"Crea"}</button>
+        <button className="btn-ghost" onClick={onClose}>Annulla</button>
+      </div>
+    </>
+  );
+}
+
+// ════════════════════════════════════════
+function App(){
+  const [cats,  setCats]  = useState(()=>lsGet("pf_cats",  SEED_CATS));
+  const [recur, setRecur] = useState(()=>lsGet("pf_recur", SEED_RECUR));
+  const [bills, setBills] = useState(()=>lsGet("pf_bills", SEED_BILLS));
+  const [exps,  setExps]  = useState(()=>lsGet("pf_exps",  SEED_EXP));
+
+  const [tab,        setTab]        = useState("home");
+  const [sheet,      setSheet]      = useState(null);
+  const [expView,    setExpView]    = useState("list");
+  const [selDay,     setSelDay]     = useState(null);
+  const [viewMonth,  setViewMonth]  = useState(CM);
+  const [viewYear,   setViewYear]   = useState(CY);
+  const [search,     setSearch]     = useState("");
+
+  useEffect(()=>lsSet("pf_cats",  cats),  [cats]);
+  useEffect(()=>lsSet("pf_recur", recur), [recur]);
+  useEffect(()=>lsSet("pf_bills", bills), [bills]);
+  useEffect(()=>lsSet("pf_exps",  exps),  [exps]);
+
+  const getCat = useCallback((id)=>cats.find(c=>c.id===id)||{name:"?",icon:"📦",color:"#888"},[cats]);
+
+  const prevMonth = () => { setSelDay(null); if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else{setViewMonth(m=>m-1);} };
+  const nextMonth = () => { setSelDay(null); if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else{setViewMonth(m=>m+1);} };
+
+  const monthExps = useMemo(()=>
+    exps.filter(e=>{const d=new Date(e.date);return d.getMonth()===viewMonth&&d.getFullYear()===viewYear;})
+        .sort((a,b)=>new Date(b.date)-new Date(a.date)),
+    [exps,viewMonth,viewYear]
+  );
+
+  const filteredExps = useMemo(()=>{
+    const q = search.trim().toLowerCase();
+    if(!q) return monthExps;
+    return monthExps.filter(e=>{
+      const c = cats.find(x=>x.id===e.catId);
+      return e.name.toLowerCase().includes(q) || (c&&c.name.toLowerCase().includes(q));
+    });
+  },[monthExps,search,cats]);
+
+  const totalMonth = useMemo(()=>monthExps.reduce((s,e)=>s+e.amount,0),[monthExps]);
+  const totalRecur = useMemo(()=>recur.reduce((s,r)=>s+r.amount,0),[recur]);
+
+  const byCat = useMemo(()=>{
+    const map={};
+    monthExps.forEach(e=>{map[e.catId]=(map[e.catId]||0)+e.amount;});
+    return cats.map(c=>({...c,total:map[c.id]||0})).filter(c=>c.total>0).sort((a,b)=>b.total-a.total);
+  },[monthExps,cats]);
+
+  // ── CRUD ──
+  const saveExp   = d => { if(d.id)setExps(p=>p.map(e=>e.id===d.id?d:e)); else setExps(p=>[...p,{...d,id:uid()}]); setSheet(null); };
+  const delExp    = id => setExps(p=>p.filter(e=>e.id!==id));
+  const saveRecur = d => { if(d.id)setRecur(p=>p.map(r=>r.id===d.id?d:r)); else setRecur(p=>[...p,{...d,id:uid()}]); setSheet(null); };
+  const delRecur  = id => { setRecur(p=>p.filter(r=>r.id!==id)); setExps(p=>p.map(e=>e.rid===id?{...e,rid:null}:e)); };
+  const regRecur  = r => setExps(p=>[...p,{id:uid(),catId:r.catId,name:r.name,amount:r.amount,date:todayStr(),rid:r.id,bid:null,pay:"card"}]);
+  const saveBill  = d => { if(d.id)setBills(p=>p.map(b=>b.id===d.id?d:b)); else setBills(p=>[...p,{...d,id:uid()}]); setSheet(null); };
+  const delBill   = id => { setBills(p=>p.filter(b=>b.id!==id)); setExps(p=>p.map(e=>e.bid===id?{...e,bid:null}:e)); };
+  const regBill   = b => setSheet({type:"exp",data:{catId:b.catId,name:b.name,amount:"",date:todayStr(),rid:null,bid:b.id,pay:"bank"}});
+  const saveCat   = d => { if(d.id)setCats(p=>p.map(c=>c.id===d.id?d:c)); else setCats(p=>[...p,{...d,id:uid()}]); setSheet(null); };
+  const delCat    = id => { setCats(p=>p.filter(c=>c.id!==id)); setExps(p=>p.filter(e=>e.catId!==id)); setRecur(p=>p.filter(r=>r.catId!==id)); setBills(p=>p.filter(b=>b.catId!==id)); };
+
+  const isRecurDone = rid => exps.some(e=>e.rid===rid&&new Date(e.date).getMonth()===viewMonth&&new Date(e.date).getFullYear()===viewYear);
+  const isBillDone  = bid => exps.some(e=>e.bid===bid&&new Date(e.date).getMonth()===viewMonth&&new Date(e.date).getFullYear()===viewYear);
+  const lastBillAmt = bid => { const f=[...exps].filter(e=>e.bid===bid).sort((a,z)=>new Date(z.date)-new Date(a.date))[0]; return f?f.amount:null; };
+
+  const exportCSV = () => {
+    const rows = [["Data","Descrizione","Categoria","Importo","Pagamento"]];
+    monthExps.forEach(e=>{
+      const c = cats.find(x=>x.id===e.catId);
+      const p = PM.find(x=>x.id===e.pay);
+      rows.push([e.date, e.name, c?c.name:"", e.amount.toFixed(2).replace(".",","), p?p.label:""]);
+    });
+    const csv = rows.map(r=>r.map(v=>'"'+v+'"').join(";")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}));
+    a.download = "spese_"+MONTHS[viewMonth]+"_"+viewYear+".csv";
+    a.click();
+  };
+
+  const ToggleView = () => (
+    <div style={{display:"flex",background:"#10101a",borderRadius:10,padding:3,marginBottom:16,border:"1px solid #1a1a2c"}}>
+      {[["list","📋 Lista"],["calendar","📅 Calendario"]].map(([v,lbl])=>(
+        <button key={v} onClick={()=>setExpView(v)}
+          style={{flex:1,padding:"8px 0",borderRadius:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:600,transition:"all .15s",
+            background:expView===v?"linear-gradient(135deg,#5B8BF5,#2FC9A0)":"transparent",
+            color:expView===v?"#fff":"#555"}}>
+          {lbl}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={S.root}>
+      <div style={S.screen}>
+
+        {/* ═══ HOME ═══ */}
+        {tab==="home" && (
+          <div style={S.page}>
+            <div style={S.header}>
+              <div style={S.hLeft}>
+                <div style={S.hSub}>Riepilogo</div>
+                <MonthNav month={viewMonth} year={viewYear} onPrev={prevMonth} onNext={nextMonth}/>
+              </div>
+              <button className="icon-btn" style={S.plusBtn} onClick={()=>setSheet({type:"exp"})}>＋</button>
+            </div>
+
+            <div style={S.totalCard}>
+              <div style={S.tLabel}>Speso questo mese</div>
+              <div style={S.tAmt}>{fmt(totalMonth)}</div>
+              <div style={S.tSub}>🔄 abbonamenti <strong>{fmt(totalRecur)}</strong> · <strong>{monthExps.length}</strong> transazioni</div>
+            </div>
+
+            <div style={S.secTitle}>Per categoria</div>
+            {byCat.length===0 && <Empty msg="Nessuna spesa questo mese"/>}
+            {byCat.map(c=>(
+              <div key={c.id} style={S.catRow}>
+                <div style={{...S.catIcon,background:c.color+"22",color:c.color}}>{c.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontSize:13,color:"#b0b0c8",fontWeight:500}}>{c.name}</span>
+                    <span style={{fontSize:13,fontWeight:700,color:c.color}}>{fmt(c.total)}</span>
+                  </div>
+                  <div style={S.barBg}><div style={{...S.barFill,width:(c.total/totalMonth*100)+"%",background:c.color}}/></div>
+                </div>
+              </div>
+            ))}
+
+            <div style={{...S.secTitle,marginTop:22}}>Ultime spese</div>
+            {monthExps.slice(0,5).map(e=>(
+              <ExpRow key={e.id} e={e} cats={cats} onEdit={()=>setSheet({type:"exp",data:e})} onDel={()=>delExp(e.id)}/>
+            ))}
+            {monthExps.length>5 && (
+              <button className="link-btn" style={S.seeAll} onClick={()=>setTab("expenses")}>
+                Vedi tutte le {monthExps.length} spese →
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ═══ SPESE ═══ */}
+        {tab==="expenses" && (
+          <div style={S.page}>
+            <div style={S.header}>
+              <div style={S.hLeft}>
+                <div style={S.hSub}>Spese</div>
+                <MonthNav month={viewMonth} year={viewYear} onPrev={prevMonth} onNext={nextMonth}/>
+              </div>
+              <button className="icon-btn" style={S.plusBtn} onClick={()=>setSheet({type:"exp"})}>＋</button>
+            </div>
+
+            {/* Search + Export */}
+            <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
+              <div style={{flex:1,position:"relative"}}>
+                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:14,color:"#444",pointerEvents:"none"}}>🔍</span>
+                <input className="search-inp" placeholder="Cerca spesa o categoria..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              </div>
+              <button className="export-btn" onClick={exportCSV}>⬇️ CSV</button>
+            </div>
+
+            <ToggleView/>
+
+            {expView==="calendar" ? (
+              <CalendarView
+                monthExps={monthExps} cats={cats}
+                selectedDay={selDay} setSelectedDay={setSelDay}
+                viewMonth={viewMonth} viewYear={viewYear}
+                onEdit={e=>setSheet({type:"exp",data:e})} onDel={delExp}
+              />
+            ) : (
+              <div>
+                {/* Abbonamenti */}
+                <div style={S.secTitle}>🔄 Abbonamenti</div>
+                <div style={{display:"flex",gap:9,overflowX:"auto",paddingBottom:4,marginBottom:14}}>
+                  {recur.map(r=>{
+                    const c=getCat(r.catId); const done=isRecurDone(r.id);
+                    return (
+                      <div key={r.id} style={{...S.chip,borderColor:c.color+"55",opacity:done?.5:1}}>
+                        <div style={{fontSize:18,marginBottom:2}}>{c.icon}</div>
+                        <div style={{fontSize:12,fontWeight:600,color:"#e0e0ee",marginBottom:1}}>{r.name}</div>
+                        <div style={{fontSize:12,color:c.color,fontWeight:700}}>{fmt(r.amount)}</div>
+                        {done ? <div style={{fontSize:10,color:"#444",marginTop:3}}>✓ registrato</div>
+                               : <button className="chip-btn" onClick={()=>regRecur(r)}>✅ Registra</button>}
+                      </div>
+                    );
+                  })}
+                  <div style={{...S.chip,borderStyle:"dashed",borderColor:"#2a2a3e",cursor:"pointer",alignItems:"center",justifyContent:"center"}} onClick={()=>setSheet({type:"recur"})}>
+                    <div style={{fontSize:20,color:"#333"}}>＋</div><div style={{fontSize:10,color:"#444"}}>Nuovo</div>
+                  </div>
+                </div>
+
+                {/* Bollette */}
+                <div style={S.secTitle}>🧾 Bollette</div>
+                <div style={{display:"flex",gap:9,overflowX:"auto",paddingBottom:4,marginBottom:14}}>
+                  {bills.map(b=>{
+                    const c=getCat(b.catId); const done=isBillDone(b.id); const last=lastBillAmt(b.id);
+                    return (
+                      <div key={b.id} style={{...S.chip,borderColor:c.color+"55",opacity:done?.5:1}}>
+                        <div style={{fontSize:18,marginBottom:2}}>{c.icon}</div>
+                        <div style={{fontSize:12,fontWeight:600,color:"#e0e0ee",marginBottom:1}}>{b.name}</div>
+                        <div style={{fontSize:11,color:"#666"}}>ogni {b.day}°</div>
+                        {last!==null && <div style={{fontSize:11,color:c.color}}>ultima: {fmt(last)}</div>}
+                        {done ? <div style={{fontSize:10,color:"#444",marginTop:3}}>✓ registrata</div>
+                               : <button className="chip-btn" style={{background:c.color+"18",color:c.color,borderColor:c.color+"33"}} onClick={()=>regBill(b)}>✏️ Inserisci</button>}
+                      </div>
+                    );
+                  })}
+                  <div style={{...S.chip,borderStyle:"dashed",borderColor:"#2a2a3e",cursor:"pointer",alignItems:"center",justifyContent:"center"}} onClick={()=>setSheet({type:"bill"})}>
+                    <div style={{fontSize:20,color:"#333"}}>＋</div><div style={{fontSize:10,color:"#444"}}>Nuova</div>
+                  </div>
+                </div>
+
+                {/* Spese manuali */}
+                <div style={{...S.secTitle,display:"flex",justifyContent:"space-between"}}>
+                  <span>Spese manuali</span>
+                  {search && <span style={{color:"#5B8BF5"}}>{filteredExps.filter(e=>!e.rid&&!e.bid).length} risultati</span>}
+                </div>
+                {filteredExps.filter(e=>!e.rid&&!e.bid).length===0 && <Empty msg={search?"Nessun risultato":"Nessuna spesa manuale"}/>}
+                {filteredExps.filter(e=>!e.rid&&!e.bid).map(e=>(
+                  <ExpRow key={e.id} e={e} cats={cats} onEdit={()=>setSheet({type:"exp",data:e})} onDel={()=>delExp(e.id)}/>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ STATISTICHE ═══ */}
+        {tab==="stats" && (
+          <div style={S.page}>
+            <div style={S.header}>
+              <div style={S.hLeft}>
+                <div style={S.hSub}>Statistiche</div>
+                <MonthNav month={viewMonth} year={viewYear} onPrev={prevMonth} onNext={nextMonth}/>
+              </div>
+            </div>
+
+            <div style={S.sCard}>
+              <div style={S.secTitle}>Distribuzione</div>
+              {byCat.length===0 ? <Empty msg="Nessun dato"/> : byCat.map(c=>(
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:11,marginBottom:13}}>
+                  <div style={{...S.catIcon,background:c.color+"22",color:c.color}}>{c.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                      <span style={{fontSize:13,color:"#d0d0e8"}}>{c.name}</span>
+                      <span style={{fontSize:13,fontWeight:700,color:c.color}}>{fmt(c.total)}</span>
+                    </div>
+                    <div style={S.barBg}><div style={{...S.barFill,width:(c.total/totalMonth*100)+"%",background:c.color}}/></div>
+                  </div>
+                  <div style={{fontSize:11,color:"#555",width:32,textAlign:"right"}}>{(c.total/totalMonth*100).toFixed(0)}%</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={S.sCard}>
+              <div style={S.secTitle}>Riepilogo</div>
+              {[
+                ["Totale mese",     fmt(totalMonth),                                                              "#e0e0ee"],
+                ["Abbonamenti",     fmt(monthExps.filter(e=>e.rid).reduce((s,e)=>s+e.amount,0)),                 "#5B8BF5"],
+                ["Bollette",        fmt(monthExps.filter(e=>e.bid).reduce((s,e)=>s+e.amount,0)),                 "#F5A623"],
+                ["Spese variabili", fmt(monthExps.filter(e=>!e.rid&&!e.bid).reduce((s,e)=>s+e.amount,0)),        "#2FC9A0"],
+              ].map(([l,v,col])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid #1a1a2c"}}>
+                  <span style={{fontSize:13,color:"#888"}}>{l}</span>
+                  <span style={{fontSize:14,fontWeight:700,color:col}}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={S.sCard}>
+              <div style={S.secTitle}>Come hai pagato</div>
+              {PM.map(pm=>{
+                const tot   = monthExps.filter(e=>e.pay===pm.id).reduce((s,e)=>s+e.amount,0);
+                const count = monthExps.filter(e=>e.pay===pm.id).length;
+                if(!count) return null;
+                return (
+                  <div key={pm.id} style={{display:"flex",alignItems:"center",gap:11,marginBottom:13}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:"#1a1a2c",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,flexShrink:0}}>{pm.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <span style={{fontSize:13,color:"#d0d0e8"}}>{pm.label}</span>
+                        <span style={{fontSize:13,fontWeight:700,color:"#e0e0ee"}}>{fmt(tot)}</span>
+                      </div>
+                      <div style={S.barBg}><div style={{...S.barFill,width:(tot/totalMonth*100)+"%",background:pm.color}}/></div>
+                    </div>
+                    <div style={{fontSize:11,color:"#555",width:44,textAlign:"right"}}>{count} spese</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ GESTIONE ═══ */}
+        {tab==="settings" && (
+          <div style={S.page}>
+            <div style={S.header}>
+              <div style={S.hLeft}><div style={S.hSub}>Impostazioni</div><div style={S.hTitleTxt}>Gestione</div></div>
+            </div>
+
+            <div style={S.secTitle}>Le tue categorie</div>
+            {cats.map(c=>(
+              <div key={c.id} style={S.setRow}>
+                <div style={{...S.catIcon,background:c.color+"22",color:c.color}}>{c.icon}</div>
+                <div style={{flex:1,fontSize:14,color:"#d0d0e8"}}>{c.name}</div>
+                <button className="icon-btn sm" onClick={()=>setSheet({type:"cat",data:c})}>✏️</button>
+                <button className="icon-btn sm del" onClick={()=>delCat(c.id)}>🗑️</button>
+              </div>
+            ))}
+            <button className="outline-btn" style={{marginTop:9,width:"100%"}} onClick={()=>setSheet({type:"cat"})}>＋ Nuova categoria</button>
+
+            <div style={{...S.secTitle,marginTop:26}}>🔄 Abbonamenti</div>
+            {recur.map(r=>{
+              const c=getCat(r.catId);
+              return (
+                <div key={r.id} style={S.setRow}>
+                  <div style={{...S.catIcon,background:c.color+"22",color:c.color}}>{c.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,color:"#d0d0e8"}}>{r.name}</div>
+                    <div style={{fontSize:11,color:"#555"}}>Ogni {r.day}° del mese · {fmt(r.amount)}</div>
+                  </div>
+                  <button className="icon-btn sm" onClick={()=>setSheet({type:"recur",data:r})}>✏️</button>
+                  <button className="icon-btn sm del" onClick={()=>delRecur(r.id)}>🗑️</button>
+                </div>
+              );
+            })}
+            <button className="outline-btn" style={{marginTop:9,width:"100%"}} onClick={()=>setSheet({type:"recur"})}>＋ Nuovo abbonamento</button>
+
+            <div style={{...S.secTitle,marginTop:26}}>🧾 Bollette</div>
+            {bills.map(b=>{
+              const c=getCat(b.catId);
+              return (
+                <div key={b.id} style={S.setRow}>
+                  <div style={{...S.catIcon,background:c.color+"22",color:c.color}}>{c.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,color:"#d0d0e8"}}>{b.name}</div>
+                    <div style={{fontSize:11,color:"#555"}}>Ogni {b.day}° del mese · importo variabile</div>
+                  </div>
+                  <button className="icon-btn sm" onClick={()=>setSheet({type:"bill",data:b})}>✏️</button>
+                  <button className="icon-btn sm del" onClick={()=>delBill(b.id)}>🗑️</button>
+                </div>
+              );
+            })}
+            <button className="outline-btn" style={{marginTop:9,width:"100%"}} onClick={()=>setSheet({type:"bill"})}>＋ Nuova bolletta</button>
+          </div>
+        )}
+
+      </div>
+
+      {/* ── Bottom nav ── */}
+      <nav style={S.botNav}>
+        {[["home","🏠","Home"],["expenses","📋","Spese"],["stats","📊","Statistiche"],["settings","⚙️","Gestione"]].map(([t,icon,lbl])=>(
+          <button key={t} className="tab-btn" style={S.tabBtn} onClick={()=>setTab(t)}>
+            <span style={{fontSize:20}}>{icon}</span>
+            <span style={{fontSize:10,fontWeight:tab===t?700:400,color:tab===t?"#5B8BF5":"#555"}}>{lbl}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* ── Bottom sheet ── */}
+      {sheet && (
+        <div style={S.overlay} onClick={()=>setSheet(null)}>
+          <div style={S.sheetBox} onClick={e=>e.stopPropagation()}>
+            <div style={S.handle}/>
+            {sheet.type==="exp"   && <ExpForm   cats={cats} data={sheet.data} onSave={saveExp}   onClose={()=>setSheet(null)}/>}
+            {sheet.type==="recur" && <RecurForm cats={cats} data={sheet.data} onSave={saveRecur} onClose={()=>setSheet(null)}/>}
+            {sheet.type==="bill"  && <BillForm  cats={cats} data={sheet.data} onSave={saveBill}  onClose={()=>setSheet(null)}/>}
+            {sheet.type==="cat"   && <CatForm               data={sheet.data} onSave={saveCat}   onClose={()=>setSheet(null)}/>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
