@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#3d1a2e">
+<title>MOI DOM 💅</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--plum:#3d1a2e;--plum2:#6b2d5e;--rose:#c47a9e;--rose-light:#f3e0ec;--rose-pale:#f8eff5;--cream:#fdf6f0;--gold:#d4a853;--gold2:#e8c87a;--text:#3d1a2e;--muted:#9b6b8a;--border:#e0c8d8;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--cream);font-family:'DM Sans',sans-serif;color:var(--text);overscroll-behavior:none}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+#app{display:flex;flex-direction:column;height:100dvh}
+#header{background:linear-gradient(135deg,var(--plum) 0%,var(--plum2) 100%);padding:calc(var(--safe-top) + .9rem) 1rem .8rem;flex-shrink:0;z-index:50}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+.header-title{font-family:'Playfair Display',serif;font-size:1.45rem;color:#f7dcea;letter-spacing:.3px}
+.header-sub{font-size:.73rem;color:rgba(247,220,234,.55);margin-top:.1rem}
+.header-right{display:flex;align-items:center;gap:.6rem}
+.user-badge{background:rgba(255,255,255,.15);border-radius:2rem;padding:.3rem .7rem;font-size:.75rem;color:#f7dcea;font-weight:600}
+.logout-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:2rem;padding:.3rem .7rem;font-size:.72rem;color:#f7dcea;cursor:pointer}
+.tabs{display:flex;gap:.3rem}
+.tab-btn{flex:1;border:none;border-radius:2rem;padding:.42rem .2rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.72rem;transition:all .2s;background:rgba(255,255,255,.12);color:rgba(247,220,234,.7)}
+.tab-btn.active{background:var(--rose);color:#fff;box-shadow:0 4px 12px rgba(196,122,158,.5)}
+#content{flex:1;overflow-y:auto;padding:1.1rem 1rem;padding-bottom:calc(var(--safe-bot) + 1rem)}
+.card{background:#fff9f5;border-radius:1.1rem;padding:1rem 1.1rem;margin-bottom:.65rem;border:1.5px solid #f0dce8;overflow-wrap:break-word;word-break:break-word}
+.card-row{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+.client-meta,.appt-notes,.appt-service,.appt-client{overflow-wrap:break-word;word-break:break-word}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--plum) 0%,var(--plum2) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:2rem}
+.login-box{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:2rem;padding:2rem 1.5rem;width:100%;max-width:360px;backdrop-filter:blur(10px)}
+.login-title{font-family:'Playfair Display',serif;font-size:2rem;color:#f7dcea;text-align:center;margin-bottom:.3rem}
+.login-sub{font-size:.85rem;color:rgba(247,220,234,.6);text-align:center;margin-bottom:2rem}
+.login-field{margin-bottom:1rem}
+.login-field label{display:block;font-size:.8rem;color:rgba(247,220,234,.7);font-weight:600;margin-bottom:.3rem}
+.login-field input,.login-field select{width:100%;padding:.7rem 1rem;border:1.5px solid rgba(255,255,255,.2);border-radius:.75rem;background:rgba(255,255,255,.1);font-family:'DM Sans',sans-serif;font-size:.95rem;color:#f7dcea;outline:none}
+.login-field select option{background:#3d1a2e;color:#f7dcea}
+.login-btn{width:100%;padding:.8rem;border:none;border-radius:2rem;background:var(--rose);color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;margin-top:.5rem;box-shadow:0 4px 20px rgba(196,122,158,.4)}
+.login-error{color:#ff9999;font-size:.83rem;text-align:center;margin-top:.75rem}
+
+/* MONTH CALENDAR */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+.month-nav button{background:none;border:none;font-size:1.5rem;color:var(--rose);cursor:pointer;padding:0 .3rem}
+.month-nav h3{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--text)}
+.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:.3rem}
+.cal-dow{text-align:center;font-size:.68rem;font-weight:700;color:var(--muted);padding:.2rem 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.25rem;margin-bottom:.75rem}
+.day-cell{border:none;border-radius:.75rem;padding:.4rem .1rem;cursor:pointer;background:#fff9f5;color:var(--text);transition:all .2s;font-family:'DM Sans',sans-serif;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.day-cell.other-month{background:transparent;color:#cbb0c0}
+.day-cell.today{background:var(--rose-light)}
+.day-cell.selected{background:var(--rose);color:#fff;box-shadow:0 4px 12px rgba(196,122,158,.4)}
+.day-cell.dayoff{background:#f5f0ff;color:#9b6b8a}
+.day-cell.holiday{background:#fff0f0;color:#c0504a}
+.day-cell.selected.dayoff,.day-cell.selected.holiday{background:var(--rose);color:#fff}
+.day-cell .dc-num{font-size:.97rem;font-weight:700;line-height:1}
+.day-dot{width:5px;height:5px;border-radius:50%;background:var(--rose);margin:3px auto 0}
+.day-cell.selected .day-dot{background:#fff}
+
+/* DAY VIEW - COLUMNS */
+.day-view-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+.day-view-header h4{font-family:'Playfair Display',serif;font-size:.98rem;color:var(--text);text-transform:capitalize}
+.columns-container{display:flex;gap:0;overflow-x:auto;border-radius:1rem;border:1.5px solid #f0dce8;background:#fff9f5}
+.time-col{flex-shrink:0;width:44px;border-right:1px solid #f0dce8}
+.time-col-header{height:36px;border-bottom:1px solid #f0dce8;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--muted);font-weight:600}
+.time-slot-label{height:48px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px;font-size:.62rem;color:var(--muted);border-bottom:1px solid #f5ece0}
+.person-col{flex:1;min-width:72px;border-right:1px solid #f0dce8;position:relative}
+.person-col:last-child{border-right:none}
+.person-col-header{height:36px;border-bottom:1px solid #f0dce8;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:var(--text);padding:0 .2rem;text-align:center;cursor:default}
+.person-col-body{position:relative}
+.time-row{height:48px;border-bottom:1px solid #f5ece0;position:relative}
+.time-row.half{border-bottom:1px dashed #f0dce8}
+.avail-block{position:absolute;left:1px;right:1px;border-radius:4px;z-index:1}
+.avail-free{background:#e8f5e9}
+.avail-busy{background:#ede7f6;border-left:3px solid #9575cd}
+.avail-blocked{background:#ffebee;border-left:3px solid #e57373}
+.appt-block{position:absolute;left:2px;right:2px;border-radius:6px;padding:2px 4px;z-index:2;cursor:pointer;overflow:hidden;font-size:.65rem;font-weight:700;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.appt-block-name{font-size:.65rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appt-block-svc{font-size:.58rem;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.add-slot-btn{position:absolute;left:2px;right:2px;height:20px;background:rgba(196,122,158,.1);border:1px dashed rgba(196,122,158,.4);border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1;font-size:.65rem;color:rgba(196,122,158,.6);font-weight:600;opacity:1;transition:opacity .2s}
+.time-row:hover .add-slot-btn{opacity:1;background:rgba(196,122,158,.2);border-color:#c47a9e;color:#c47a9e}
+.block-btn{position:absolute;left:2px;right:2px;bottom:2px;height:16px;background:rgba(229,115,115,.15);border:1px dashed #e57373;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1;font-size:.58rem;color:#e57373;font-weight:600;opacity:0;transition:opacity .2s}
+.person-col:hover .block-btn{opacity:1}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(44,22,33,.55);display:flex;align-items:flex-end;justify-content:center;z-index:200;backdrop-filter:blur(3px);padding-bottom:var(--safe-bot)}
+.modal-box{background:var(--cream);border-radius:1.5rem 1.5rem 0 0;padding:1.5rem 1.2rem;width:100%;max-width:600px;max-height:90dvh;overflow-y:auto;box-shadow:0 -8px 40px rgba(44,22,33,.2);animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--text)}
+.modal-close{background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;line-height:1}
+.field{margin-bottom:.85rem}
+.field label{display:block;font-size:.8rem;color:#7a4a6a;font-weight:600;margin-bottom:.28rem}
+.field input,.field select,.field textarea{width:100%;padding:.58rem .9rem;border:1.5px solid var(--border);border-radius:.75rem;background:#fff9f5;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text);outline:none;appearance:none}
+.field textarea{resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.info-box{background:var(--rose-pale);border-radius:.75rem;padding:.55rem .9rem;font-size:.85rem;color:#7a4a6a;margin-bottom:.85rem}
+.btn{border:none;border-radius:2rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;justify-content:center}
+.btn-primary{background:var(--rose);color:#fff;box-shadow:0 4px 14px rgba(196,122,158,.35)}
+.btn-secondary{background:var(--rose-pale);color:var(--text)}
+.btn-danger{background:#e57373;color:#fff}
+.btn-sm{padding:.38rem .9rem;font-size:.8rem}.btn-md{padding:.6rem 1.3rem;font-size:.9rem}
+.btn-row{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.5rem}
+.icon-btn{padding:.35rem .55rem;font-size:.85rem}
+.search-bar{display:flex;gap:.6rem;align-items:center;margin-bottom:1rem}
+.search-bar input{flex:1;padding:.55rem 1rem;border:1.5px solid var(--border);border-radius:2rem;background:#fff9f5;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text);outline:none}
+.service-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.65rem}
+.service-card{background:#fff9f5;border-radius:1.1rem;padding:.9rem 1rem;border:1.5px solid #f0dce8}
+.badge{border-radius:2rem;padding:.18rem .65rem;font-size:.77rem;font-weight:600}
+.badge-rose{background:var(--rose-pale);color:#7a4a6a}
+.badge-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--plum)}
+.empty{text-align:center;padding:2.5rem 0;color:#b08898;font-style:italic}
+.empty-icon{font-size:2rem;margin-bottom:.5rem}
+.history-item{font-size:.83rem;color:var(--text);margin-bottom:.3rem;display:flex;gap:.5rem;flex-wrap:wrap}
+.history-date{color:var(--rose);font-weight:600}
+.client-meta{font-size:.83rem;color:var(--muted);margin-top:.15rem}
+#loader{position:fixed;inset:0;background:var(--cream);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:998;font-size:2.5rem;gap:.5rem}
+#loader p{font-size:1rem;color:var(--rose)}
+</style>
+</head>
+<body>
+<div id="loader">💅<p>Caricamento…</p></div>
+<div id="login-screen" style="display:none"></div>
+<div id="app" style="display:none"></div>
+
+<script>
+// ── FIREBASE REST ─────────────────────────────────────────────────────────────
+const FB_PROJECT="moi-dom-9e132";
+const FB_API_KEY="AIzaSyAKA3Pai7x0CgPkd6AF_5OUa1DWEIv8IV8";
+const FB_BASE=`https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+
+function toFS(obj){
+  function cv(v){
+    if(v===null||v===undefined)return{nullValue:null};
+    if(typeof v==="boolean")return{booleanValue:v};
+    if(typeof v==="number")return{doubleValue:v};
+    if(typeof v==="string")return{stringValue:v};
+    if(Array.isArray(v))return{arrayValue:{values:v.length?v.map(cv):[]}};
+    if(typeof v==="object"){const f={};Object.entries(v).forEach(([k,x])=>{f[k]=cv(x)});return{mapValue:{fields:f}}}
+    return{stringValue:String(v)};
+  }
+  const f={};Object.entries(obj).forEach(([k,v])=>{f[k]=cv(v)});return{fields:f};
+}
+function fromFS(fields){
+  function pv(v){
+    if(!v)return null;
+    if(v.nullValue!==undefined)return null;
+    if(v.booleanValue!==undefined)return v.booleanValue;
+    if(v.doubleValue!==undefined)return v.doubleValue;
+    if(v.integerValue!==undefined)return+v.integerValue;
+    if(v.stringValue!==undefined)return v.stringValue;
+    if(v.arrayValue)return(v.arrayValue.values||[]).map(pv);
+    if(v.mapValue){const o={};Object.entries(v.mapValue.fields||{}).forEach(([k,x])=>{o[k]=pv(x)});return o}
+    return null;
+  }
+  const o={};Object.entries(fields||{}).forEach(([k,v])=>{o[k]=pv(v)});return o;
+}
+async function fbGet(path){
+  try{
+    const r=await fetch(`${FB_BASE}/${path}?key=${FB_API_KEY}`);
+    if(r.ok){const j=await r.json();return fromFS(j.fields);}
+    if(r.status===404)return null;
+  }catch{}return null;
+}
+async function fbSet(path,data){
+  try{
+    // Build updateMask so each field is fully REPLACED (not merged).
+    // Without this, Firestore PATCH merges arrays and leaves residue from deleted items.
+    const mask=Object.keys(data).map(k=>"updateMask.fieldPaths="+encodeURIComponent(k)).join("&");
+    const r=await fetch(`${FB_BASE}/${path}?key=${FB_API_KEY}&${mask}`,{
+      method:"PATCH",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(toFS(data))
+    });
+    return r.ok;
+  }catch{return false;}
+}
+
+const LOCAL={
+  get(k,fb){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+
+// ── ACCOUNTS ──────────────────────────────────────────────────────────────────
+const ACCOUNTS={
+  liya:    {name:"Liya",    pass:"Chanel01!", role:"estetista", appName:"💅 MOI DOM",  color:"#c47a9e"},
+  valeria: {name:"Valeria", pass:"Cleria",    role:"parrucchiera", appName:"✂️ Cleria", color:"#7a9ec4"},
+  clara:   {name:"Clara",   pass:"Cleria",    role:"parrucchiera", appName:"✂️ Cleria", color:"#9ec47a"},
+  marieClaire:{name:"Marie Claire",pass:"Cleria",role:"parrucchiera",appName:"✂️ Cleria",color:"#c4a47a"},
+  admin:   {name:"ADMIN",   pass:"MOIDOM23",  role:"admin",    appName:"⚙️ ADMIN",     color:"#3d1a2e"},
+};
+
+// Column order per user: own column first, then others
+const PERSON_ORDER={
+  liya:       ["liya","valeria","clara","marieClaire"],
+  valeria:    ["valeria","clara","marieClaire","liya"],
+  clara:      ["clara","valeria","marieClaire","liya"],
+  marieClaire:["marieClaire","valeria","clara","liya"],
+  admin:      ["liya","valeria","clara","marieClaire"],
+};
+
+const PEOPLE=["liya","valeria","clara","marieClaire"];
+const PEOPLE_NAMES={liya:"Liya",valeria:"Valeria",clara:"Clara",marieClaire:"M.Claire"};
+const PEOPLE_COLORS={liya:"#c47a9e",valeria:"#7a9ec4",clara:"#9ec47a",marieClaire:"#c4a47a"};
+
+// ── DEFAULTS ──────────────────────────────────────────────────────────────────
+const DEFAULT_SERVICES_LIYA=[
+  {id:"sl1",name:"Manicure",duration:60,price:25,owner:"liya"},
+  {id:"sl2",name:"Pedicure",duration:75,price:35,owner:"liya"},
+  {id:"sl3",name:"Semipermanente",duration:90,price:40,owner:"liya"},
+  {id:"sl4",name:"Trattamento viso",duration:60,price:50,owner:"liya"},
+  {id:"sl5",name:"Ceretta gambe",duration:45,price:30,owner:"liya"},
+  {id:"sl6",name:"Ceretta ascelle",duration:20,price:12,owner:"liya"},
+  {id:"sl7",name:"Sopracciglia",duration:20,price:10,owner:"liya"},
+  {id:"sl8",name:"Trucco",duration:60,price:60,owner:"liya"},
+];
+const DEFAULT_SERVICES_PARRUCCHIERE=[
+  {id:"sp1",name:"Taglio donna",duration:45,price:0,owner:"parrucchiera"},
+  {id:"sp2",name:"Taglio uomo",duration:30,price:0,owner:"parrucchiera"},
+  {id:"sp3",name:"Piega",duration:45,price:0,owner:"parrucchiera"},
+  {id:"sp4",name:"Colore",duration:90,price:0,owner:"parrucchiera"},
+  {id:"sp5",name:"Meches",duration:120,price:0,owner:"parrucchiera"},
+];
+const DEFAULT_SERVICES=[...DEFAULT_SERVICES_LIYA,...DEFAULT_SERVICES_PARRUCCHIERE];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let state={
+  user: null,
+  tab:"calendar",
+  appointments:[],
+  clients:[],
+  services:[...DEFAULT_SERVICES],
+  blocks:[],
+  baseDate:new Date(),
+  selectedDay:toKey(new Date()),
+  modal:null,
+  clientSearch:"",
+  expandedClient:null,
+  statsYear:null,
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const DAYS=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+const MONTHS=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+function toKey(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0");return`${y}-${m}-${dd}`;}
+function uid(){return"_"+Math.random().toString(36).slice(2,9);}
+function timeToMin(t){const[h,m]=t.split(":").map(Number);return h*60+m;}
+function minToTime(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
+function clientById(id){
+  if(id==="jolly") return {name:"⚡ Jolly",phone:"",email:""};
+  return state.clients.find(c=>c.id===id);
+}
+function serviceById(id){return state.services.find(s=>s.id===id);}
+function apptPrice(a){return a.customPrice!=null?a.customPrice:(serviceById(a.serviceId)?.price||0);}
+function isParrucchiera(userId){ return ["valeria","clara","marieClaire"].includes(userId); }
+function svcBelongsToUser(svc, userId){
+  if(!svc) return false;
+  if(svc.owner==="parrucchiera") return isParrucchiera(userId);
+  return svc.owner===userId;
+}
+function canSeePrice(svc){
+  if(!svc) return false;
+  const u=state.user;
+  if(u==="admin") return true;
+  if(svc.owner==="liya") return u==="liya";
+  if(svc.owner==="parrucchiera") return isParrucchiera(u);
+  return svc.owner===u;
+}
+function canEditService(svc){
+  if(!svc) return false;
+  const u=state.user;
+  if(u==="admin") return true;
+  return svcBelongsToUser(svc, u);
+}
+
+function italianHolidays(year){
+  const fixed=[`${year}-01-01`,`${year}-01-06`,`${year}-04-25`,`${year}-05-01`,`${year}-06-02`,
+    `${year}-08-15`,`${year}-11-01`,`${year}-12-08`,`${year}-12-25`,`${year}-12-26`];
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const mm=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*mm+114)/31),dy=((h+l-7*mm+114)%31)+1;
+  const easter=new Date(year,mo-1,dy),easterMon=new Date(easter);easterMon.setDate(easter.getDate()+1);
+  fixed.push(toKey(easter),toKey(easterMon));return new Set(fixed);
+}
+function dayStatus(key){
+  const d=new Date(key+"T12:00:00"),dow=d.getDay();
+  if(italianHolidays(d.getFullYear()).has(key))return"holiday";
+  if(dow===0||dow===1)return"dayoff";
+  return null;
+}
+
+// ── OFFLINE QUEUE ─────────────────────────────────────────────────────────────
+let isOnline=navigator.onLine;
+let pendingSave=false;
+let lastUpdatedAt="";
+
+window.addEventListener("online",async()=>{
+  isOnline=true;
+  updateOnlineIndicator();
+  if(pendingSave){
+    pendingSave=false;
+    await saveAll();
+  }
+});
+window.addEventListener("offline",()=>{
+  isOnline=false;
+  updateOnlineIndicator();
+});
+
+function updateOnlineIndicator(){
+  const ind=document.getElementById("online-indicator");
+  if(ind) ind.textContent=isOnline?"🟢":"🔴 Offline";
+}
+
+async function saveAll(){
+  const stamp=new Date().toISOString();
+  const data={
+    appointments:state.appointments,
+    clients:state.clients,
+    services:state.services,
+    blocks:state.blocks,
+    updatedAt:stamp
+  };
+  // Mark this as our own write so the realtime sync doesn't reload an older
+  // cached copy on top of what we just changed (e.g. a just-deleted appointment).
+  lastUpdatedAt=stamp;
+  // Always save to localStorage immediately
+  LOCAL.set("ba_appointments",state.appointments);
+  LOCAL.set("ba_clients",state.clients);
+  LOCAL.set("ba_services",state.services);
+  LOCAL.set("ba_blocks",state.blocks);
+  LOCAL.set("ba_updatedAt",stamp);
+  // Try Firebase
+  if(!isOnline){pendingSave=true;return;}
+  const ok=await fbSet("moidom/data",data);
+  if(!ok){pendingSave=true;}
+}
+async function loadAll(){
+  const d=await fbGet("moidom/data");
+  if(d){
+    state.appointments=d.appointments||[];
+    state.clients=d.clients||[];
+    state.services=d.services||[...DEFAULT_SERVICES];
+    state.blocks=d.blocks||[];
+    lastUpdatedAt=d.updatedAt||"";
+  }else{
+    state.appointments=LOCAL.get("ba_appointments",[]);
+    state.clients=LOCAL.get("ba_clients",[]);
+    state.services=LOCAL.get("ba_services",[...DEFAULT_SERVICES]);
+    state.blocks=LOCAL.get("ba_blocks",[]);
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  const app=document.getElementById("app");app.innerHTML="";
+  app.appendChild(renderHeader());
+  const content=el("div",{id:"content"});
+  if(state.tab==="calendar")content.appendChild(renderCalendar());
+  if(state.tab==="clients")content.appendChild(renderClients());
+  if(state.tab==="services")content.appendChild(renderServices());
+  if(state.tab==="stats"&&state.user==="admin")content.appendChild(renderStats());
+  if(state.tab==="backup"&&state.user!=="admin")content.appendChild(renderBackupOnly());
+  app.appendChild(content);
+  if(state.modal)app.appendChild(renderModal());
+}
+function el(tag,props={},...children){
+  const e=document.createElement(tag);
+  Object.entries(props).forEach(([k,v])=>{
+    if(k==="class")e.className=v;
+    else if(k==="style"&&typeof v==="object")Object.assign(e.style,v);
+    else if(k.startsWith("on"))e.addEventListener(k.slice(2).toLowerCase(),v);
+    else e.setAttribute(k,v);
+  });
+  children.flat().forEach(c=>{if(c!=null)e.appendChild(typeof c==="string"?document.createTextNode(c):c)});
+  return e;
+}
+function txt(t){return document.createTextNode(t);}
+function fld(label,tag,attrs={},children=[]){
+  const d=el("div",{class:"field"});d.appendChild(el("label",{},label));
+  d.appendChild(el(tag,attrs,...children));return d;
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+function renderLogin(){
+  const ls=document.getElementById("login-screen");ls.innerHTML="";ls.style.display="flex";
+  const box=el("div",{class:"login-box"});
+  box.appendChild(el("div",{class:"login-title"},"💅 ✂️"));
+  box.appendChild(el("div",{class:"login-title",style:{fontSize:"1.3rem",marginTop:"-.3rem"}},"Cleria & MOI DOM"));
+  box.appendChild(el("div",{class:"login-sub"},"Accedi al tuo account"));
+
+  const userIn=el("input",{type:"text",placeholder:"Nome utente",style:{width:"100%",padding:".7rem 1rem",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:".75rem",background:"rgba(255,255,255,.1)",fontFamily:"'DM Sans',sans-serif",fontSize:".95rem",color:"#f7dcea",outline:"none",marginBottom:"1rem"}});
+  box.appendChild(userIn);
+
+  const passIn=el("input",{type:"password",placeholder:"Password",style:{width:"100%",padding:".7rem 1rem",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:".75rem",background:"rgba(255,255,255,.1)",fontFamily:"'DM Sans',sans-serif",fontSize:".95rem",color:"#f7dcea",outline:"none",marginBottom:"1rem"}});
+  box.appendChild(passIn);
+
+  const errDiv=el("div",{class:"login-error"});
+
+  // Map common name variations to account keys
+  function resolveUser(raw){
+    const map={
+      "liya":"liya",
+      "valeria":"valeria",
+      "clara":"clara",
+      "marie claire":"marieClaire",
+      "marieclaure":"marieClaire",
+      "marieClaire":"marieClaire",
+      "marie":"marieClaire",
+      "admin":"admin",
+    };
+    return map[raw.toLowerCase().trim()]||raw.trim();
+  }
+
+  box.appendChild(el("button",{class:"login-btn",onClick:()=>{
+    const u=resolveUser(userIn.value);
+    if(!u){errDiv.textContent="Inserisci il nome utente.";return;}
+    if(!ACCOUNTS[u]){errDiv.textContent="Utente '"+userIn.value+"' non trovato.";return;}
+    if(ACCOUNTS[u].pass!==passIn.value){errDiv.textContent="Password errata.";return;}
+    state.user=u;
+    LOCAL.set("ba_session",u);
+    ls.style.display="none";
+    document.getElementById("app").style.display="flex";
+    render();
+  }},"Accedi"));
+  box.appendChild(errDiv);
+  ls.appendChild(box);
+}
+
+// ── HEADER ────────────────────────────────────────────────────────────────────
+function renderHeader(){
+  const acc=ACCOUNTS[state.user];
+  const tabs=[{id:"calendar",label:"📅 Calendario"},{id:"clients",label:"👤 Clienti"},{id:"services",label:"✨ Servizi"}];
+  if(state.user==="admin")tabs.push({id:"stats",label:"📊 Guadagni"});
+  else tabs.push({id:"backup",label:"💾 Backup"});
+  return el("div",{id:"header"},
+    el("div",{class:"header-top"},
+      el("div",{},
+        el("div",{class:"header-title"},acc.appName),
+        el("div",{class:"header-sub"},new Date().toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"}))
+      ),
+      el("div",{class:"header-right"},
+        el("span",{id:"online-indicator",style:{fontSize:".7rem",color:"rgba(247,220,234,.7)"}},isOnline?"🟢":"🔴 Offline"),
+        el("div",{class:"user-badge"},acc.name),
+        el("button",{class:"logout-btn",onClick:()=>{
+          state.user=null;
+          LOCAL.set("ba_session",null);
+          document.getElementById("app").style.display="none";
+          renderLogin();
+        }},"Esci")
+      )
+    ),
+    el("div",{class:"tabs"},...tabs.map(t=>el("button",{class:"tab-btn"+(state.tab===t.id?" active":""),onClick:()=>{state.tab=t.id;render();}},t.label)))
+  );
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────────────────────
+function getMonthCells(year,month){
+  const first=new Date(year,month,1),last=new Date(year,month+1,0);
+  let dow=(first.getDay()+6)%7;const cells=[];
+  for(let i=dow-1;i>=0;i--){const d=new Date(year,month,0-i);cells.push({date:d,cur:false});}
+  for(let d=1;d<=last.getDate();d++)cells.push({date:new Date(year,month,d),cur:true});
+  while(cells.length%7!==0){const p=cells[cells.length-1].date,n=new Date(p);n.setDate(p.getDate()+1);cells.push({date:n,cur:false});}
+  return cells;
+}
+
+function renderCalendar(){
+  const today=toKey(new Date());
+  const apptsByDay={};
+  state.appointments.forEach(a=>{if(!apptsByDay[a.date])apptsByDay[a.date]=[];apptsByDay[a.date].push(a);});
+  const year=state.baseDate.getFullYear(),month=state.baseDate.getMonth();
+  const cells=getMonthCells(year,month);
+  const selLabel=new Date(state.selectedDay+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+
+  return el("div",{},
+    // month nav
+    el("div",{class:"month-nav"},
+      el("button",{onClick:()=>{const d=new Date(state.baseDate);d.setMonth(d.getMonth()-1);state.baseDate=d;render();}},"‹"),
+      el("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:".2rem"}},
+        el("h3",{},MONTHS[month]+" "+year),
+        el("button",{style:{background:"none",border:"1px solid #e0c8d8",borderRadius:"2rem",padding:".15rem .7rem",fontSize:".7rem",color:"#c47a9e",cursor:"pointer",fontWeight:600},
+          onClick:()=>{state.baseDate=new Date();state.selectedDay=toKey(new Date());render();}},"● Oggi")
+      ),
+      el("button",{onClick:()=>{const d=new Date(state.baseDate);d.setMonth(d.getMonth()+1);state.baseDate=d;render();}},"›")
+    ),
+    el("div",{class:"cal-dow-row"},...DAYS.map(d=>el("div",{class:"cal-dow"},d))),
+    el("div",{class:"cal-grid"},...cells.map(({date,cur})=>{
+      const key=toKey(date),dayA=apptsByDay[key]||[],cnt=dayA.length;
+      const status=cur?dayStatus(key):null;
+      let cls="day-cell";
+      if(!cur)cls+=" other-month";
+      else if(key===state.selectedDay)cls+=" selected";
+      else if(key===today)cls+=" today";
+      if(status==="holiday")cls+=" holiday";
+      else if(status==="dayoff")cls+=" dayoff";
+      return el("button",{class:cls,onClick:()=>{state.selectedDay=key;state.baseDate=new Date(date);render();}},
+        el("div",{class:"dc-num"},String(date.getDate())),
+        cnt>0?el("div",{class:"day-dot"}):txt("")
+      );
+    })),
+    // legend
+    el("div",{style:{display:"flex",gap:".7rem",marginBottom:".75rem",fontSize:".7rem",color:"#9b6b8a",flexWrap:"wrap"}},
+      el("span",{style:{display:"flex",alignItems:"center",gap:".3rem"}},el("span",{style:{width:8,height:8,borderRadius:2,background:"#c47a9e",display:"inline-block"}}),"Appuntamento"),
+      el("span",{style:{display:"flex",alignItems:"center",gap:".3rem"}},el("span",{style:{width:8,height:8,borderRadius:2,background:"#f5f0ff",border:"1px solid #9b6b8a",display:"inline-block"}}),"Dom/Lun"),
+      el("span",{style:{display:"flex",alignItems:"center",gap:".3rem"}},el("span",{style:{width:8,height:8,borderRadius:2,background:"#fff0f0",border:"1px solid #c0504a",display:"inline-block"}}),"Festivo")
+    ),
+    // day view header
+    el("div",{class:"day-view-header"},
+      el("h4",{},selLabel),
+      el("button",{class:"btn btn-primary btn-sm",onClick:()=>{
+        state.modal={type:"appt",data:{id:null,clientId:"",serviceId:"",personId:state.user==="admin"?"liya":state.user,date:state.selectedDay,time:"09:00",notes:"",payment:"carta",customPrice:null}};render();
+      }},"+ Appuntamento")
+    ),
+    // birthday
+    (()=>{
+      const md=state.selectedDay.slice(5);
+      const bdc=state.clients.filter(c=>c.birthday&&c.birthday.slice(5)===md);
+      if(!bdc.length)return txt("");
+      return el("div",{style:{background:"#fff8e1",border:"1.5px solid #ffe082",borderRadius:"1.1rem",padding:".75rem 1rem",marginBottom:".65rem",fontSize:".88rem",color:"#856404"}},
+        el("div",{style:{fontWeight:700,marginBottom:".3rem"}},"🎂 Compleanno oggi!"),
+        ...bdc.map(c=>el("div",{},c.name))
+      );
+    })(),
+    // column day view
+    renderDayColumns()
+  );
+}
+
+// ── DAY COLUMNS VIEW ──────────────────────────────────────────────────────────
+function renderDayColumns(){
+  const START=8*60, END=20*60, SLOT=30;
+  const slots=[];
+  for(let m=START;m<END;m+=SLOT)slots.push(m);
+
+  const order=PERSON_ORDER[state.user]||PEOPLE;
+  const dayAppts=state.appointments.filter(a=>a.date===state.selectedDay);
+  const dayBlocks=state.blocks.filter(b=>b.date===state.selectedDay);
+
+  const container=el("div",{class:"columns-container"});
+
+  // Time column
+  const timeCol=el("div",{class:"time-col"});
+  timeCol.appendChild(el("div",{class:"time-col-header"},""));
+  slots.forEach(m=>{
+    timeCol.appendChild(el("div",{class:"time-slot-label"},minToTime(m)));
+  });
+  container.appendChild(timeCol);
+
+  // Person columns
+  order.forEach(personId=>{
+    const acc=ACCOUNTS[personId];
+    const col=el("div",{class:"person-col"});
+
+    // Header — name + quick add button (works even over existing appointments)
+    const hdr=el("div",{class:"person-col-header",style:{borderBottom:"2px solid "+acc.color,display:"flex",alignItems:"center",justifyContent:"center",gap:"3px"}},
+      el("span",{style:{color:acc.color}},PEOPLE_NAMES[personId]),
+      el("span",{style:{background:acc.color,color:"#fff",borderRadius:"50%",width:"16px",height:"16px",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:".7rem",fontWeight:700,cursor:"pointer",flexShrink:0,lineHeight:1},
+        onClick:(ev)=>{ev.stopPropagation();state.modal={type:"appt",data:{id:null,clientId:"",serviceId:"",personId,date:state.selectedDay,time:"09:00",notes:"",payment:"carta",customPrice:null}};render();}},"+")
+    );
+    col.appendChild(hdr);
+
+    // Body
+    const body=el("div",{class:"person-col-body"});
+    const bodyHeight=slots.length*48;
+    body.style.height=bodyHeight+"px";
+    body.style.position="relative";
+
+    // Draw slot rows — all users can add appointments on any column
+    slots.forEach((m,i)=>{
+      const row=el("div",{class:"time-row",style:{top:(i*48)+"px",position:"absolute",left:0,right:0,height:"48px"}});
+      const addBtn=el("div",{class:"add-slot-btn",onClick:()=>{
+        state.modal={type:"appt",data:{id:null,clientId:"",serviceId:"",personId,date:state.selectedDay,time:minToTime(m),notes:"",payment:"carta",customPrice:null}};render();
+      }},"+");
+      row.appendChild(addBtn);
+      body.appendChild(row);
+    });
+
+    // Draw blocks (red) — clamp to grid so they never escape or become unclickable
+    dayBlocks.filter(b=>b.personId===personId).forEach(b=>{
+      let top=((b.startMin-START)/SLOT)*48;
+      let height=((b.endMin-b.startMin)/SLOT)*48;
+      // Clamp into the visible grid area
+      if(top<0){ height+=top; top=0; }
+      if(top>bodyHeight) return;
+      if(top+height>bodyHeight) height=bodyHeight-top;
+      if(height<18) height=18;
+      const block=el("div",{class:"avail-block avail-blocked",style:{top:top+"px",height:height+"px"}});
+      block.appendChild(el("div",{style:{fontSize:".62rem",color:"#c62828",fontWeight:700,padding:"2px 4px",overflow:"hidden"}},"🔴 "+(b.note||"Non disponibile")));
+      if(b.personId===state.user||state.user==="admin"){
+        block.style.cursor="pointer";
+        block.addEventListener("click",(ev)=>{
+          ev.stopPropagation();
+          state.modal={type:"blockDetail",data:b};render();
+        });
+      }
+      body.appendChild(block);
+    });
+
+    // Draw appointments (purple). When several overlap, clicking opens a chooser.
+    const personAppts=dayAppts.filter(a=>a.personId===personId)
+      .map(a=>{
+        const svc=serviceById(a.serviceId);
+        const startMin=timeToMin(a.time);
+        const endMin=startMin+(svc?.duration||60);
+        return {a,svc,startMin,endMin};
+      })
+      .sort((x,y)=>x.startMin-y.startMin);
+
+    personAppts.forEach(({a,svc,startMin,endMin})=>{
+      const client=clientById(a.clientId);
+      const top=((startMin-START)/SLOT)*48;
+      const height=((endMin-startMin)/SLOT)*48;
+      if(top<0)return;
+      // Find all appointments that overlap this one (including itself)
+      const overlapping=personAppts.filter(o=>startMin<o.endMin && endMin>o.startMin);
+      const hasOverlap=overlapping.length>1;
+      const apptEl=el("div",{class:"appt-block",style:{
+        top:top+"px",height:Math.max(height-2,20)+"px",
+        background:acc.color
+      },onClick:()=>{
+        if(hasOverlap){
+          // Open chooser listing all overlapping appointments
+          state.modal={type:"apptChooser",data:{appts:overlapping.map(o=>o.a),personId}};render();
+        }else{
+          state.modal={type:"apptDetail",data:a};render();
+        }
+      }});
+      // Show a badge if there are overlapping appointments
+      if(hasOverlap){
+        apptEl.appendChild(el("div",{style:{position:"absolute",top:"1px",right:"1px",background:"#fff",color:acc.color,borderRadius:"50%",width:"15px",height:"15px",fontSize:".6rem",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}},String(overlapping.length)));
+      }
+      apptEl.appendChild(el("div",{class:"appt-block-name"},client?.name||"—"));
+      apptEl.appendChild(el("div",{class:"appt-block-svc"},svc?.name||"—"));
+      apptEl.appendChild(el("div",{style:{fontSize:".58rem",opacity:.75,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},a.time+" → "+minToTime(endMin)));
+      body.appendChild(apptEl);
+    });
+
+    // Block button — own column for everyone, all columns for admin
+    const canBlock=personId===state.user||state.user==="admin";
+    if(canBlock){
+      const blockBtn=el("div",{style:{position:"absolute",bottom:4,left:2,right:2,height:20,background:"rgba(229,115,115,.15)",border:"1px dashed #e57373",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:".62rem",color:"#e57373",fontWeight:600,zIndex:3},
+        onClick:()=>{state.modal={type:"block",data:{personId,date:state.selectedDay}};render();}},"🔴 Blocca orario");
+      body.appendChild(blockBtn);
+    }
+
+    col.appendChild(body);
+    container.appendChild(col);
+  });
+
+  return el("div",{style:{overflowX:"auto",borderRadius:"1rem",border:"1.5px solid #f0dce8",marginBottom:"1rem"}},container);
+}
+
+// ── CLIENTS ───────────────────────────────────────────────────────────────────
+function renderClients(){
+  const q=state.clientSearch.toLowerCase();
+  const filtered=state.clients.filter(c=>c.name.toLowerCase().includes(q)).slice().sort((a,b)=>a.name.localeCompare(b.name,"it"));
+  return el("div",{},
+    el("div",{class:"search-bar"},
+      el("input",{type:"search",placeholder:"🔍 Cerca cliente…",value:state.clientSearch,onInput:e=>{state.clientSearch=e.target.value;render();}}),
+      el("button",{class:"btn btn-primary btn-sm",onClick:()=>{state.modal={type:"client",data:{id:null,name:"",phone:"",email:"",birthday:"",notes:""}};render();}},"+ Nuovo")
+    ),
+    filtered.length===0?el("div",{class:"empty"},el("div",{class:"empty-icon"},"💅"),"Nessun cliente trovato")
+    :el("div",{},...filtered.map(c=>{
+      const appts=state.appointments.filter(a=>a.clientId===c.id);
+      const isExp=state.expandedClient===c.id;
+      const todayMD=toKey(new Date()).slice(5);
+      const isBirthday=c.birthday&&c.birthday.slice(5)===todayMD;
+      const birthdaySoon=c.birthday&&(()=>{const n=new Date(),bd=new Date(n.getFullYear()+"-"+c.birthday.slice(5)+"T12:00:00");if(bd<n)bd.setFullYear(n.getFullYear()+1);return(bd-n)<7*24*3600*1000;})();
+      const maxA=Math.max(...state.clients.map(x=>state.appointments.filter(a=>a.clientId===x.id).length),0);
+      const isTop=appts.length>0&&appts.length===maxA;
+      return el("div",{class:"card",style:{cursor:"pointer"},onClick:()=>{state.expandedClient=isExp?null:c.id;render();}},
+        el("div",{class:"card-row"},
+          el("div",{style:{flex:1}},
+            el("div",{style:{fontWeight:700,marginBottom:".2rem",display:"flex",alignItems:"center",gap:".4rem",flexWrap:"wrap"}},
+              c.name,
+              isBirthday?el("span",{style:{fontSize:".78rem",background:"#fff3cd",color:"#856404",borderRadius:"2rem",padding:".1rem .5rem"}},"🎂 Oggi!"):txt(""),
+              birthdaySoon&&!isBirthday?el("span",{style:{fontSize:".78rem",background:"#fff3cd",color:"#856404",borderRadius:"2rem",padding:".1rem .5rem"}},"🎂 Presto"):txt(""),
+              isTop?el("span",{style:{fontSize:".78rem",background:"#fff8e1",color:"#c47a00",borderRadius:"2rem",padding:".1rem .5rem"}},"⭐ Top"):txt("")
+            ),
+            el("div",{class:"client-meta"},c.phone?"📞 "+c.phone+" ":"",c.email?"✉️ "+c.email:"",c.birthday?" 🎂 "+new Date(c.birthday+"T12:00:00").toLocaleDateString("it-IT",{day:"numeric",month:"long"}):"")
+          ),
+          el("div",{style:{display:"flex",gap:".35rem",alignItems:"center",flexShrink:0}},
+            el("span",{class:"badge badge-rose"},appts.length+" apt"),
+            el("button",{class:"btn btn-secondary btn-sm icon-btn",onClick:e=>{e.stopPropagation();state.modal={type:"client",data:{...c}};render();}},"✏️"),
+            el("button",{class:"btn btn-danger btn-sm icon-btn",onClick:e=>{e.stopPropagation();if(confirm("Eliminare "+c.name+"? Verranno eliminati anche tutti i suoi appuntamenti.")){
+              state.clients=state.clients.filter(x=>x.id!==c.id);
+              state.appointments=state.appointments.filter(a=>a.clientId!==c.id);
+              if(state.expandedClient===c.id)state.expandedClient=null;
+              saveAll();render();}}},"🗑")
+          )
+        ),
+        isExp?el("div",{style:{marginTop:".8rem",borderTop:"1px solid #f0dce8",paddingTop:".8rem"}},
+          c.notes?el("div",{style:{background:"#fff3f8",borderRadius:".75rem",padding:".5rem .8rem",fontSize:".83rem",color:"#7a4a6a",marginBottom:".7rem",borderLeft:"3px solid #c47a9e"}},"📝 "+c.notes):txt(""),
+          // Future appointments
+          (()=>{
+            const today=toKey(new Date());
+            const future=appts.filter(a=>a.date>=today).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+            if(!future.length) return txt("");
+            const box=el("div",{style:{marginBottom:".7rem"}});
+            box.appendChild(el("div",{style:{fontSize:".8rem",fontWeight:700,color:"#4a7a2a",marginBottom:".4rem"}},"📅 Prossimi appuntamenti"));
+            future.forEach(a=>{
+              const s=serviceById(a.serviceId),p=ACCOUNTS[a.personId];
+              box.appendChild(el("div",{style:{background:"#f0f8e8",borderRadius:".6rem",padding:".4rem .7rem",marginBottom:".3rem",display:"flex",gap:".5rem",flexWrap:"wrap",fontSize:".83rem"}},
+                el("span",{style:{color:"#4a7a2a",fontWeight:700}},a.date),
+                el("span",{},a.time),
+                el("span",{style:{color:p?.color||"#999",fontWeight:600}},p?.name||"—"),
+                el("span",{},s?.name||"—")
+              ));
+            });
+            return box;
+          })(),
+          // Past history
+          el("div",{style:{fontSize:".8rem",fontWeight:700,color:"#7a4a6a",marginBottom:".4rem"}},"📋 Storico passato"),
+          (()=>{
+            const today=toKey(new Date());
+            const past=appts.filter(a=>a.date<today).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+            if(!past.length) return el("div",{style:{fontSize:".83rem",color:"#b08898",fontStyle:"italic"}},"Nessun appuntamento passato");
+            return el("div",{},...past.map(a=>{
+              const s=serviceById(a.serviceId),p=ACCOUNTS[a.personId];
+              return el("div",{class:"history-item"},
+                el("span",{class:"history-date"},a.date),el("span",{},a.time),
+                el("span",{style:{color:p?.color||"#999",fontWeight:600}},p?.name||"—"),
+                el("span",{},s?.name||"—"),
+                (state.user==="admin"||a.personId===state.user)?el("span",{style:{color:"var(--muted)"}},"€"+apptPrice(a)):txt("")
+              );
+            }));
+          })()
+        ):txt("")
+      );
+    }))
+  );
+}
+
+// ── SERVICES ──────────────────────────────────────────────────────────────────
+function renderServices(){
+  const u=state.user;
+  // Filter: liya sees her services, parrucchiere see their own + all others without price, admin sees all
+  const visible=state.services.filter(s=>{
+    if(u==="admin")return true;
+    return true; // everyone sees all services, but price is hidden for others
+  }).slice().sort((a,b)=>a.name.localeCompare(b.name,"it"));
+
+  return el("div",{},
+    el("div",{style:{display:"flex",justifyContent:"flex-end",marginBottom:"1rem"}},
+      el("button",{class:"btn btn-primary btn-sm",onClick:()=>{
+        const owner=u==="admin"?"liya":u;
+        state.modal={type:"service",data:{id:null,name:"",duration:60,price:0,description:"",owner}};render();
+      }},"+ Nuovo Servizio")
+    ),
+    el("div",{class:"service-grid"},...visible.map(s=>{
+      const showPrice=canSeePrice(s);
+      const canEdit=canEditService(s);
+      const ownerLabel=s.owner==="parrucchiera"?"✂️ Parrucchiera":`💅 ${ACCOUNTS[s.owner]?.name||s.owner}`;
+      const ownerColor=s.owner==="parrucchiera"?"#7a9ec4":(ACCOUNTS[s.owner]?.color||"#c47a9e");
+      return el("div",{class:"service-card",style:{borderTop:"3px solid "+ownerColor}},
+        el("div",{style:{fontSize:".7rem",color:ownerColor,fontWeight:700,marginBottom:".3rem"}},ownerLabel),
+        el("div",{style:{fontWeight:700,color:"var(--text)",fontSize:".95rem",marginBottom:".4rem"}},s.name),
+        s.description?el("div",{style:{fontSize:".78rem",color:"var(--muted)",fontStyle:"italic",marginBottom:".4rem"}},s.description):txt(""),
+        el("div",{style:{display:"flex",gap:".35rem",flexWrap:"wrap",marginBottom:".6rem"}},
+          el("span",{class:"badge badge-rose"},"⏱ "+s.duration+"min"),
+          showPrice?el("span",{class:"badge badge-gold"},"€ "+s.price):txt("")
+        ),
+        canEdit?el("div",{style:{display:"flex",gap:".35rem"}},
+          el("button",{class:"btn btn-secondary btn-sm",onClick:()=>{state.modal={type:"service",data:{...s}};render();}},"✏️"),
+          el("button",{class:"btn btn-danger btn-sm",onClick:()=>{if(confirm("Eliminare "+s.name+"?")){state.services=state.services.filter(x=>x.id!==s.id);saveAll();render();}}},"🗑")
+        ):txt("")
+      );
+    }))
+  );
+}
+
+// ── STATS (admin only) ────────────────────────────────────────────────────────
+function renderStats(){
+  const now=new Date(),curYear=now.getFullYear();
+  const allYears=[...new Set(state.appointments.map(a=>a.date.slice(0,4)))].sort().reverse();
+  if(!allYears.includes(String(curYear)))allYears.unshift(String(curYear));
+  if(!state.statsYear)state.statsYear=String(curYear);
+  const year=+state.statsYear;
+
+  // Only Liya's appointments for stats
+  const liyaAppts=state.appointments.filter(a=>a.personId==="liya");
+
+  const monthlyData=Array.from({length:12},(_,i)=>{
+    const pfx=year+"-"+String(i+1).padStart(2,"0");
+    const rev=liyaAppts.filter(a=>a.date.startsWith(pfx)&&a.payment!=="da_pagare").reduce((s,a)=>s+apptPrice(a),0);
+    return{month:MONTHS[i].slice(0,3),rev};
+  });
+  const maxRev=Math.max(...monthlyData.map(m=>m.rev),1);
+  const totalYear=liyaAppts.filter(a=>a.date.startsWith(String(year))&&a.payment!=="da_pagare").reduce((s,a)=>s+apptPrice(a),0);
+  const curPfx=toKey(now).slice(0,7);
+  const curAppts=liyaAppts.filter(a=>a.date.startsWith(curPfx));
+  const curRev=curAppts.filter(a=>a.payment!=="da_pagare").reduce((s,a)=>s+apptPrice(a),0);
+  const curCash=curAppts.filter(a=>a.payment==="contanti").reduce((s,a)=>s+apptPrice(a),0);
+  const curCard=curAppts.filter(a=>a.payment==="carta").reduce((s,a)=>s+apptPrice(a),0);
+  const curUnpaid=curAppts.filter(a=>a.payment==="da_pagare"||!a.payment).reduce((s,a)=>s+apptPrice(a),0);
+
+  const svcCount={};
+  liyaAppts.filter(a=>a.date.startsWith(String(year))).forEach(a=>{
+    const s=serviceById(a.serviceId);if(!s)return;
+    if(!svcCount[s.id])svcCount[s.id]={name:s.name,count:0,rev:0};
+    svcCount[s.id].count++;svcCount[s.id].rev+=apptPrice(a);
+  });
+  const topSvcs=Object.values(svcCount).sort((a,b)=>b.count-a.count).slice(0,5);
+
+  const dowRev=Array(7).fill(0),dowCount=Array(7).fill(0);
+  liyaAppts.filter(a=>a.date.startsWith(String(year))&&a.payment!=="da_pagare").forEach(a=>{
+    const dow=(new Date(a.date+"T12:00:00").getDay()+6)%7;dowRev[dow]+=apptPrice(a);dowCount[dow]++;
+  });
+  const bestDow=dowRev.indexOf(Math.max(...dowRev));
+
+  const wrap=el("div",{});
+  wrap.appendChild(el("div",{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"var(--muted)",marginBottom:".75rem"}},"📊 Statistiche Liya (Estetista)"));
+
+  const yr=el("div",{style:{display:"flex",gap:".4rem",marginBottom:"1rem",flexWrap:"wrap"}});
+  allYears.forEach(y=>yr.appendChild(el("button",{style:{border:"none",borderRadius:"2rem",padding:".35rem .9rem",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:".85rem",background:String(y)===state.statsYear?"#c47a9e":"#f3e8f0",color:String(y)===state.statsYear?"#fff":"#7a4a6a"},onClick:()=>{state.statsYear=String(y);render();}},String(y))));
+  wrap.appendChild(yr);
+
+  const summary=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".65rem",marginBottom:"1.25rem"}});
+  [{label:"Incassato questo mese",val:"€"+curRev,color:"#c47a9e"},{label:"Appuntamenti questo mese",val:String(curAppts.length),color:"#9b6b8a"},
+   {label:"Totale incassato "+year,val:"€"+totalYear,color:"#d4a853"},{label:"Da riscuotere",val:"€"+curUnpaid,color:"#e0a030"}]
+  .forEach(p=>summary.appendChild(el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem",border:"1.5px solid #f0dce8",textAlign:"center"}},
+    el("div",{style:{fontSize:"1.5rem",fontWeight:700,color:p.color,fontFamily:"'Playfair Display',serif"}},p.val),
+    el("div",{style:{fontSize:".75rem",color:"#9b6b8a",marginTop:".2rem"}},p.label)
+  )));
+  wrap.appendChild(summary);
+
+  wrap.appendChild(el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem",border:"1.5px solid #f0dce8",marginBottom:"1rem",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:".5rem",textAlign:"center"}},
+    el("div",{},el("div",{style:{fontSize:"1.2rem",fontWeight:700,color:"#6abf69"}},"€"+curCash),el("div",{style:{fontSize:".72rem",color:"#9b6b8a"}},"💵 Contanti")),
+    el("div",{},el("div",{style:{fontSize:"1.2rem",fontWeight:700,color:"#5b8dd9"}},"€"+curCard),el("div",{style:{fontSize:".72rem",color:"#9b6b8a"}},"💳 Carta")),
+    el("div",{},el("div",{style:{fontSize:"1.2rem",fontWeight:700,color:"#e0a030"}},"€"+curUnpaid),el("div",{style:{fontSize:".72rem",color:"#9b6b8a"}},"⏳ Da pagare"))
+  ));
+
+  wrap.appendChild(el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem",border:"1.5px solid #f0dce8",marginBottom:"1rem"}},
+    el("div",{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#3d1a2e",marginBottom:"1rem",fontWeight:700}},"Guadagni mensili "+year),
+    el("div",{style:{display:"flex",alignItems:"flex-end",gap:"3px",height:"100px"}},...monthlyData.map(m=>{
+      const h=maxRev>0?Math.round((m.rev/maxRev)*90)+2:2;
+      const isCur=MONTHS[now.getMonth()].slice(0,3)===m.month;
+      return el("div",{style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:"3px"}},
+        el("div",{style:{width:"100%",height:h+"px",borderRadius:"4px 4px 0 0",background:isCur?"linear-gradient(180deg,#c47a9e,#9b4a7e)":"#f0dce8"}}),
+        el("div",{style:{fontSize:".55rem",color:"#9b6b8a",textAlign:"center"}},m.month)
+      );
+    }))
+  ));
+
+  // Monthly payment breakdown
+  const monthlyPayments=Array.from({length:12},(_,i)=>{
+    const pfx=year+"-"+String(i+1).padStart(2,"0");
+    const ma=liyaAppts.filter(a=>a.date.startsWith(pfx));
+    return{
+      month:MONTHS[i].slice(0,3),
+      cash:ma.filter(a=>a.payment==="contanti").reduce((s,a)=>s+apptPrice(a),0),
+      card:ma.filter(a=>a.payment==="carta").reduce((s,a)=>s+apptPrice(a),0),
+      unpaid:ma.filter(a=>a.payment==="da_pagare"||!a.payment).reduce((s,a)=>s+apptPrice(a),0),
+    };
+  });
+  const payBox=el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem",border:"1.5px solid #f0dce8",marginBottom:"1rem"}});
+  payBox.appendChild(el("div",{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#3d1a2e",marginBottom:".75rem",fontWeight:700}},"Metodi di pagamento per mese "+year));
+  monthlyPayments.forEach(m=>{
+    const tot=m.cash+m.card+m.unpaid;
+    if(tot===0)return;
+    payBox.appendChild(el("div",{style:{marginBottom:".6rem"}},
+      el("div",{style:{display:"flex",justifyContent:"space-between",fontSize:".8rem",marginBottom:".25rem"}},
+        el("span",{style:{fontWeight:700,color:"#3d1a2e"}},m.month),
+        el("span",{style:{color:"#9b6b8a"}},"€"+tot)
+      ),
+      el("div",{style:{display:"flex",height:8,borderRadius:"2rem",overflow:"hidden",gap:1}},
+        m.cash>0?el("div",{style:{flex:m.cash,background:"#6abf69",borderRadius:"2rem 0 0 2rem"}}):txt(""),
+        m.card>0?el("div",{style:{flex:m.card,background:"#5b8dd9"}}):txt(""),
+        m.unpaid>0?el("div",{style:{flex:m.unpaid,background:"#e0a030",borderRadius:"0 2rem 2rem 0"}}):txt("")
+      ),
+      el("div",{style:{display:"flex",gap:".75rem",fontSize:".72rem",marginTop:".2rem"}},
+        m.cash>0?el("span",{style:{color:"#6abf69"}},"💵 €"+m.cash):txt(""),
+        m.card>0?el("span",{style:{color:"#5b8dd9"}},"💳 €"+m.card):txt(""),
+        m.unpaid>0?el("span",{style:{color:"#e0a030"}},"⏳ €"+m.unpaid):txt("")
+      )
+    ));
+  });
+  wrap.appendChild(payBox);
+
+  if(dowCount.some(c=>c>0)){
+    const dn=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"],mx=Math.max(...dowRev,1);
+    const bb=el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem",border:"1.5px solid #f0dce8",marginBottom:"1rem"}});
+    bb.appendChild(el("div",{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#3d1a2e",marginBottom:".75rem",fontWeight:700}},"📅 Giornata più redditizia"));
+    bb.appendChild(el("div",{style:{background:"linear-gradient(135deg,#f3e8f0,#fff9f5)",border:"1.5px solid #e0c8d8",borderRadius:".75rem",padding:".7rem 1rem",marginBottom:".75rem",textAlign:"center"}},
+      el("div",{style:{fontSize:"1.3rem",fontWeight:700,color:"#c47a9e",fontFamily:"'Playfair Display',serif"}},dn[bestDow]),
+      el("div",{style:{fontSize:".8rem",color:"#9b6b8a",marginTop:".2rem"}},"€"+dowRev[bestDow]+" · "+dowCount[bestDow]+" appuntamenti")
+    ));
+    dn.forEach((name,i)=>{
+      if(!dowCount[i])return;
+      const pct=Math.round((dowRev[i]/mx)*100);
+      bb.appendChild(el("div",{style:{marginBottom:".45rem"}},
+        el("div",{style:{display:"flex",justifyContent:"space-between",fontSize:".8rem",marginBottom:".2rem"}},
+          el("span",{style:{fontWeight:i===bestDow?700:400,color:i===bestDow?"#c47a9e":"#3d1a2e"}},name),
+          el("span",{style:{color:"#9b6b8a"}},"€"+dowRev[i])
+        ),
+        el("div",{style:{background:"#f0dce8",borderRadius:"2rem",height:6,overflow:"hidden"}},
+          el("div",{style:{width:pct+"%",height:"100%",background:i===bestDow?"linear-gradient(90deg,#c47a9e,#e8a0c0)":"#e0c8d8",borderRadius:"2rem"}})
+        )
+      ));
+    });
+    wrap.appendChild(bb);
+  }
+
+  if(topSvcs.length>0){
+    const sb=el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem",border:"1.5px solid #f0dce8",marginBottom:"1rem"}});
+    sb.appendChild(el("div",{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#3d1a2e",marginBottom:".75rem",fontWeight:700}},"Servizi più richiesti"));
+    const mc=topSvcs[0].count;
+    topSvcs.forEach((s,i)=>{
+      const pct=Math.round((s.count/mc)*100);
+      sb.appendChild(el("div",{style:{marginBottom:".65rem"}},
+        el("div",{style:{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".25rem"}},
+          el("span",{style:{fontWeight:600,color:"#3d1a2e"}},(i+1)+". "+s.name),
+          el("span",{style:{color:"#9b6b8a"}},s.count+" apt · €"+s.rev)
+        ),
+        el("div",{style:{background:"#f0dce8",borderRadius:"2rem",height:7,overflow:"hidden"}},
+          el("div",{style:{width:pct+"%",height:"100%",background:"linear-gradient(90deg,#c47a9e,#e8a0c0)",borderRadius:"2rem"}})
+        )
+      ));
+    });
+    wrap.appendChild(sb);
+  }
+
+  // Backup
+  const bk=el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem 1.1rem",border:"1.5px solid #f0dce8",marginTop:"1rem"}});
+  bk.appendChild(el("div",{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#3d1a2e",fontWeight:700,marginBottom:".3rem"}},"💾 Backup dati"));
+  bk.appendChild(el("div",{style:{fontSize:".8rem",color:"#9b6b8a",marginBottom:".9rem"}},"I dati sono in cloud ☁️. Usa il backup come copia extra."));
+  bk.appendChild(el("button",{class:"btn btn-primary btn-md",style:{width:"100%",marginBottom:".6rem"},onClick:()=>{
+    const json=JSON.stringify({version:2,exportedAt:new Date().toISOString(),clients:state.clients,appointments:state.appointments,services:state.services,blocks:state.blocks});
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json).then(()=>alert("✅ Backup copiato!\n\nIncolla nelle Note del tuo iPhone.")).catch(()=>showBkText(json,bk,pasteArea));
+    }else showBkText(json,bk,pasteArea);
+  }},"📋 Copia backup negli appunti"));
+  const pasteArea=el("textarea",{rows:3,placeholder:"Incolla qui il testo del backup…",style:{width:"100%",padding:".6rem",border:"1.5px solid #e0c8d8",borderRadius:".75rem",background:"#fff9f5",fontSize:".75rem",color:"#3d1a2e",marginBottom:".6rem",fontFamily:"monospace",resize:"none"}});
+  bk.appendChild(pasteArea);
+  bk.appendChild(el("button",{class:"btn btn-secondary btn-md",style:{width:"100%"},onClick:()=>{
+    const text=pasteArea.value.trim();if(!text){alert("Incolla prima il testo.");return;}
+    try{
+      const d=JSON.parse(text);
+      if(!d.clients||!d.appointments){alert("❌ Testo non valido.");return;}
+      if(!confirm("⚠️ I dati attuali verranno sostituiti. Continuare?"))return;
+      state.clients=d.clients||[];state.appointments=d.appointments||[];
+      state.services=d.services||[...DEFAULT_SERVICES_LIYA];state.blocks=d.blocks||[];
+      saveAll();render();alert("✅ Backup ripristinato!");
+    }catch{alert("❌ Testo non valido.");}
+  }},"⬆️ Ripristina da backup"));
+  wrap.appendChild(bk);
+  return wrap;
+}
+function showBkText(json,bk,pasteArea){
+  const ta=el("textarea",{rows:4,style:{width:"100%",padding:".6rem",border:"1.5px solid #e0c8d8",borderRadius:".75rem",background:"#fff9f5",fontSize:".7rem",color:"#3d1a2e",marginBottom:".6rem",fontFamily:"monospace",resize:"none"}});
+  ta.value=json;ta.addEventListener("click",()=>ta.select());
+  bk.insertBefore(ta,pasteArea);
+}
+
+function renderBackupOnly(){
+  const wrap=el("div",{});
+  const bk=el("div",{style:{background:"#fff9f5",borderRadius:"1.1rem",padding:"1rem 1.1rem",border:"1.5px solid #f0dce8"}});
+  bk.appendChild(el("div",{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#3d1a2e",fontWeight:700,marginBottom:".3rem"}},"💾 Backup dati"));
+  bk.appendChild(el("div",{style:{fontSize:".8rem",color:"#9b6b8a",marginBottom:".9rem"}},"I dati sono in cloud ☁️. Usa il backup come copia extra."));
+  bk.appendChild(el("button",{class:"btn btn-primary btn-md",style:{width:"100%",marginBottom:".6rem"},onClick:()=>{
+    const json=JSON.stringify({version:2,exportedAt:new Date().toISOString(),clients:state.clients,appointments:state.appointments,services:state.services,blocks:state.blocks});
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json).then(()=>alert("✅ Backup copiato!\n\nIncolla nelle Note del tuo iPhone.")).catch(()=>showBkText(json,bk,pasteArea));
+    }else showBkText(json,bk,pasteArea);
+  }},"📋 Copia backup negli appunti"));
+  const pasteArea=el("textarea",{rows:3,placeholder:"Incolla qui il testo del backup…",style:{width:"100%",padding:".6rem",border:"1.5px solid #e0c8d8",borderRadius:".75rem",background:"#fff9f5",fontSize:".75rem",color:"#3d1a2e",marginBottom:".6rem",fontFamily:"monospace",resize:"none"}});
+  bk.appendChild(pasteArea);
+  bk.appendChild(el("button",{class:"btn btn-secondary btn-md",style:{width:"100%"},onClick:()=>{
+    const text=pasteArea.value.trim();if(!text){alert("Incolla prima il testo.");return;}
+    try{
+      const d=JSON.parse(text);
+      if(!d.clients||!d.appointments){alert("❌ Testo non valido.");return;}
+      if(!confirm("⚠️ I dati attuali verranno sostituiti. Continuare?"))return;
+      state.clients=d.clients||[];state.appointments=d.appointments||[];
+      state.services=d.services||[...DEFAULT_SERVICES];state.blocks=d.blocks||[];
+      saveAll();render();alert("✅ Backup ripristinato!");
+    }catch{alert("❌ Testo non valido.");}
+  }},"⬆️ Ripristina da backup"));
+  wrap.appendChild(bk);
+  return wrap;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function renderModal(){
+  const{type,data}=state.modal;
+  let title,body;
+  if(type==="appt"){title=data.id?"Modifica Appuntamento":"Nuovo Appuntamento";body=renderApptForm(data);}
+  if(type==="apptDetail"){title="Appuntamento";body=renderApptDetail(data);}
+  if(type==="apptChooser"){title="Appuntamenti sovrapposti";body=renderApptChooser(data);}
+  if(type==="client"){title=data.id?"Modifica Cliente":"Nuovo Cliente";body=renderClientForm(data);}
+  if(type==="service"){title=data.id?"Modifica Servizio":"Nuovo Servizio";body=renderServiceForm(data);}
+  if(type==="block"){title=data.id?"Modifica Blocco":"Blocca Orario";body=renderBlockForm(data);}
+  if(type==="blockDetail"){title="Orario Bloccato";body=renderBlockDetail(data);}
+  return el("div",{class:"modal-overlay",onClick:e=>{if(e.target===e.currentTarget){state.modal=null;render();}}},
+    el("div",{class:"modal-box"},
+      el("div",{class:"modal-header"},el("div",{class:"modal-title"},title),el("button",{class:"modal-close",onClick:()=>{state.modal=null;render();}},"✕")),
+      body
+    )
+  );
+}
+
+// ── APPT CHOOSER (overlapping) ────────────────────────────────────────────────
+function renderApptChooser(data){
+  const{appts,personId}=data;
+  const acc=ACCOUNTS[personId];
+  const wrap=el("div",{});
+  wrap.appendChild(el("div",{style:{fontSize:".85rem",color:"var(--muted)",marginBottom:"1rem"}},
+    "Ci sono "+appts.length+" appuntamenti in questa fascia oraria. Tocca quello che vuoi aprire:"));
+  appts.slice().sort((a,b)=>timeToMin(a.time)-timeToMin(b.time)).forEach(a=>{
+    const c=clientById(a.clientId),s=serviceById(a.serviceId);
+    const endMin=timeToMin(a.time)+(s?.duration||60);
+    wrap.appendChild(el("div",{style:{
+      background:"#fff9f5",border:"1.5px solid "+acc.color,borderRadius:".9rem",
+      padding:".7rem .9rem",marginBottom:".5rem",cursor:"pointer",display:"flex",
+      flexDirection:"column",gap:".15rem"
+    },onClick:()=>{state.modal={type:"apptDetail",data:a};render();}},
+      el("div",{style:{display:"flex",gap:".5rem",alignItems:"center"}},
+        el("span",{style:{background:acc.color,color:"#fff",borderRadius:"2rem",padding:".15rem .6rem",fontSize:".75rem",fontWeight:700}},a.time+" → "+minToTime(endMin)),
+        el("span",{style:{fontWeight:700}},c?.name||"—")
+      ),
+      el("div",{style:{fontSize:".82rem",color:"var(--muted)"}},s?.name||"—")
+    ));
+  });
+  return wrap;
+}
+
+// ── APPT DETAIL ───────────────────────────────────────────────────────────────
+function renderApptDetail(a){
+  const c=clientById(a.clientId),s=serviceById(a.serviceId),p=ACCOUNTS[a.personId];
+  const price=a.customPrice!=null?a.customPrice:(s?.price||0);
+  const showPrice=state.user==="admin"||(a.personId==="liya"&&state.user==="liya")||(a.personId!=="liya"&&isParrucchiera(state.user));
+  const showPayEdit=state.user==="admin"||(a.personId==="liya"&&state.user==="liya")||(a.personId!=="liya"&&isParrucchiera(state.user));
+  const endMin=timeToMin(a.time)+(s?.duration||60);
+  const endTime=minToTime(endMin);
+  const wrap=el("div",{});
+  wrap.appendChild(el("div",{style:{background:"#fff3f8",borderRadius:"1rem",padding:"1rem",marginBottom:"1rem"}},
+    el("div",{style:{display:"flex",gap:".5rem",alignItems:"center",marginBottom:".5rem"}},
+      el("span",{style:{background:p?.color||"#c47a9e",color:"#fff",borderRadius:"2rem",padding:".2rem .7rem",fontSize:".8rem",fontWeight:700}},a.time+" → "+endTime),
+      el("span",{style:{fontWeight:700,fontSize:"1rem"}},c?.name||"—"),
+      // Jolly edit button
+      a.clientId==="jolly"?el("button",{style:{background:"#fff3cd",border:"none",borderRadius:"2rem",padding:".15rem .6rem",fontSize:".75rem",color:"#856404",cursor:"pointer",fontWeight:600},
+        onClick:()=>{
+          const newName=prompt("Nome della cliente Jolly:");
+          if(!newName||!newName.trim())return;
+          // Create real client from jolly
+          const newClient={id:uid(),name:newName.trim(),phone:"",email:"",birthday:"",notes:"",createdAt:toKey(new Date())};
+          state.clients.push(newClient);
+          state.appointments=state.appointments.map(x=>x.id===a.id?{...x,clientId:newClient.id}:x);
+          saveAll();state.modal=null;render();
+        }},"✏️ Identifica"):txt("")
+    ),
+    el("div",{style:{fontSize:".88rem",color:"var(--muted)",marginBottom:".3rem"}},"👤 "+(p?.name||"—")+" · "+(s?.name||"—")+" · "+(s?.duration||"?")+"min"),
+    showPrice?el("div",{style:{fontSize:".88rem",color:"var(--muted)",marginBottom:".3rem"}},"💰 €"+price+" · "+(a.payment==="carta"?"💳 Carta":a.payment==="contanti"?"💵 Contanti":"⏳ Da pagare")):txt(""),
+    a.notes?el("div",{style:{fontSize:".83rem",fontStyle:"italic",color:"#9b6b8a"}},"📝 "+a.notes):txt("")
+  ));
+
+  // All users can edit payment for appointments in their group
+  if(showPayEdit){
+    const pmRow=el("div",{style:{display:"flex",gap:".4rem",marginBottom:".75rem"}});
+    [["contanti","💵 Contanti","#6abf69"],["carta","💳 Carta","#5b8dd9"],["da_pagare","⏳ Da pagare","#e0a030"]].forEach(([v,l,col])=>{
+      const active=(a.payment||"carta")===v;
+      pmRow.appendChild(el("button",{style:{flex:1,border:"2px solid "+(active?col:"#e0c8d8"),borderRadius:"2rem",padding:".38rem .3rem",fontSize:".78rem",fontWeight:700,cursor:"pointer",background:active?col+"22":"transparent",color:active?col:"#9b6b8a"},
+        onClick:()=>{state.appointments=state.appointments.map(x=>x.id===a.id?{...x,payment:v}:x);saveAll();state.modal=null;render();}},l));
+    });
+    wrap.appendChild(pmRow);
+  }
+  wrap.appendChild(el("div",{class:"btn-row"},
+    el("button",{class:"btn btn-secondary btn-md",onClick:()=>{state.modal={type:"appt",data:{...a}};render();}},"✏️ Modifica"),
+    el("button",{class:"btn btn-danger btn-md",onClick:()=>{
+      if(confirm("Eliminare questo appuntamento?")){state.appointments=state.appointments.filter(x=>x.id!==a.id);saveAll();state.modal=null;render();}
+    }},"🗑 Elimina"),
+    el("button",{class:"btn btn-secondary btn-md",onClick:()=>{
+      if(a.clientId==="jolly"){alert("Il cliente Jolly non ha un numero di telefono. Identificalo prima!");return;}
+      const df=new Date(a.date+"T12:00:00").toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+      const firstName=c?.name?.split(" ")[0]||"";
+      const msg=encodeURIComponent("Ciao "+firstName+"! Ti ricordo il tuo appuntamento per "+(s?.name||"")+" "+df+" alle "+a.time+". A presto! 💅");
+      const phone=(c?.phone||"").replace(/\s/g,"");
+      if(!phone){alert("Nessun numero di telefono per questa cliente.");return;}
+      window.open("sms:"+phone+"?&body="+msg);
+    }},"💬 SMS")
+  ));
+  return wrap;
+}
+
+// ── APPOINTMENT FORM ──────────────────────────────────────────────────────────
+function renderApptForm(d){
+  const wrap=el("div",{});
+
+  // Person selector
+  const personSel=el("select",{});
+  PEOPLE.forEach(pid=>{
+    const o=el("option",{value:pid},ACCOUNTS[pid].name);
+    if(pid===(d.personId||state.user))o.selected=true;
+    personSel.appendChild(o);
+  });
+  wrap.appendChild(el("div",{class:"field"},el("label",{},"Per chi"),personSel));
+
+  // Client selector with Jolly option
+  const clientSel=el("select",{});
+  clientSel.appendChild(el("option",{value:""},"— Seleziona cliente —"));
+  clientSel.appendChild(el("option",{value:"jolly"},"⚡ Jolly (cliente da identificare)"));
+  state.clients.slice().sort((a,b)=>a.name.localeCompare(b.name,"it")).forEach(c=>{
+    const o=el("option",{value:c.id},c.name);if(c.id===d.clientId)o.selected=true;clientSel.appendChild(o);
+  });
+  if(d.clientId==="jolly"){const o=clientSel.querySelector('option[value="jolly"]');if(o)o.selected=true;}
+  wrap.appendChild(el("div",{class:"field"},el("label",{},"Cliente"),clientSel));
+
+  // Service selector (filtered by person)
+  const svcSel=el("select",{});
+  svcSel.appendChild(el("option",{value:""},"— Seleziona servizio —"));
+  const infoBox=el("div",{});
+  const priceInput=el("input",{type:"number",min:"0",step:"0.5"});
+  priceInput.value=d.customPrice!=null?d.customPrice:(d.serviceId?(serviceById(d.serviceId)?.price||""):"");
+
+  function populateServices(){
+    svcSel.innerHTML="";svcSel.appendChild(el("option",{value:""},"— Seleziona servizio —"));
+    const pid=personSel.value;
+    // Services for this person: liya's own, or parrucchiera shared services
+    const ownerKey=pid==="liya"?"liya":"parrucchiera";
+    state.services.filter(s=>s.owner===ownerKey).slice().sort((a,b)=>a.name.localeCompare(b.name,"it")).forEach(s=>{
+      const o=el("option",{value:s.id},s.name+" ("+s.duration+"min)");
+      if(s.id===d.serviceId)o.selected=true;svcSel.appendChild(o);
+    });
+    updateInfo();
+  }
+  function updateInfo(){
+    infoBox.innerHTML="";
+    const s=state.services.find(x=>x.id===svcSel.value);
+    if(s){
+      const showP=state.user==="admin"||s.owner===state.user;
+      infoBox.appendChild(el("div",{class:"info-box"},"⏱ "+s.duration+" min"+(showP?" | €"+s.price:"")));
+      priceInput.value=s.price;
+    }
+  }
+  personSel.addEventListener("change",()=>{ populateServices(); buildPriceSection(); });
+  svcSel.addEventListener("change",updateInfo);
+  wrap.appendChild(el("div",{class:"field"},el("label",{},"Servizio"),svcSel));
+  wrap.appendChild(infoBox);
+  populateServices();
+
+  // Price & payment — show for own appointments or admin
+  // Re-evaluate when person changes
+  const priceSection=el("div",{});
+  function buildPriceSection(){
+    priceSection.innerHTML="";
+    const pid=personSel.value;
+    const showP=state.user==="admin"||pid===state.user;
+    if(showP){
+      const paymentSel=el("select",{});
+      [["carta","💳 Carta"],["contanti","💵 Contanti"],["da_pagare","⏳ Da pagare"]].forEach(([v,l])=>{
+        const o=el("option",{value:v},l);if(v===(d.payment||"carta"))o.selected=true;paymentSel.appendChild(o);
+      });
+      const pg=el("div",{class:"grid2"});
+      pg.appendChild(el("div",{class:"field"},el("label",{},"Prezzo (€)"),priceInput));
+      pg.appendChild(el("div",{class:"field"},el("label",{},"Pagamento"),paymentSel));
+      priceSection.appendChild(pg);
+      wrap._paymentSel=paymentSel;
+    } else {
+      wrap._paymentSel=null;
+    }
+  }
+  personSel.addEventListener("change",()=>{ populateServices(); buildPriceSection(); });
+  wrap.appendChild(priceSection);
+  buildPriceSection();
+
+  const dateInput=el("input",{type:"date",value:d.date||""});
+  const timeInput=el("input",{type:"time",value:d.time||"09:00"});
+  const g=el("div",{class:"grid2"});
+  g.appendChild(el("div",{class:"field"},el("label",{},"Data"),dateInput));
+  g.appendChild(el("div",{class:"field"},el("label",{},"Orario"),timeInput));
+  wrap.appendChild(g);
+
+  const notesInput=el("textarea",{rows:2,placeholder:"Opzionale…"});notesInput.value=d.notes||"";
+  wrap.appendChild(el("div",{class:"field"},el("label",{},"Note"),notesInput));
+
+  wrap.appendChild(el("div",{class:"btn-row"},
+    el("button",{class:"btn btn-secondary btn-md",onClick:()=>{state.modal=null;render();}},"Annulla"),
+    el("button",{class:"btn btn-primary btn-md",onClick:()=>{
+      const personId=personSel.value;
+      const clientId=clientSel.value;
+      const serviceId=svcSel.value;
+      const date=dateInput.value,time=timeInput.value,notes=notesInput.value;
+      const customPrice=priceInput.value!==""?+priceInput.value:null;
+      const payment=wrap._paymentSel?wrap._paymentSel.value:"carta";
+      if(!clientId||!serviceId||!date||!time){alert("Compila tutti i campi obbligatori.");return;}
+      // time range warning
+      const tMin=timeToMin(time);
+      if(tMin<8*60||tMin>=20*60){if(!confirm("⚠️ Orario fuori range!\n\nL'orario "+time+" è fuori dall'orario di lavoro (08:00-20:00).\n\nVuoi aggiungerlo comunque?"))return;}
+      // past warning
+      if(!d.id){const dt=new Date(date+"T"+time);if(dt<new Date()){if(!confirm("⚠️ Data nel passato! Aggiungere comunque?"))return;}}
+      // holiday warning
+      if(!d.id){const st=dayStatus(date);if(st==="holiday"){if(!confirm("🎉 Giorno festivo! Sei sicura?"))return;}else if(st==="dayoff"){const dw=new Date(date+"T12:00:00").getDay();if(!confirm("😴 "+(dw===0?"Domenica":"Lunedì")+" non lavorativo. Sei sicura?"))return;}}
+      // overlap check — warn but allow confirmation
+      const ns=serviceById(serviceId);
+      const nst=timeToMin(time);
+      const ned=nst+Math.max(ns?.duration||60, 1);
+      const conf=state.appointments.find(a=>{
+        if(!a.personId||!personId)return false;
+        if(a.date!==date)return false;
+        if(a.personId!==personId)return false;
+        if(d.id&&a.id===d.id)return false;
+        const as2=serviceById(a.serviceId);
+        const ast=timeToMin(a.time);
+        const aed=ast+Math.max(as2?.duration||60, 1);
+        return nst<aed&&ned>ast;
+      });
+      if(conf){
+        const cc=clientById(conf.clientId);
+        const confEndMin=timeToMin(conf.time)+Math.max(serviceById(conf.serviceId)?.duration||60,1);
+        const ok=confirm("⚠️ Sovrapposizione!\n\n"+ACCOUNTS[personId]?.name+" ha già un appuntamento con "+(cc?.name||"cliente")+" dalle "+conf.time+" alle "+minToTime(confEndMin)+".\n\nVuoi aggiungerlo comunque?");
+        if(!ok)return;
+      }
+      const saved={id:d.id||uid(),personId,clientId,serviceId,date,time,notes,customPrice,payment};
+      if(d.id)state.appointments=state.appointments.map(a=>a.id===d.id?saved:a);
+      else state.appointments.push(saved);
+      saveAll();state.modal=null;render();
+    }},"Salva")
+  ));
+  return wrap;
+}
+
+// ── BLOCK DETAIL ──────────────────────────────────────────────────────────────
+function renderBlockDetail(b){
+  const wrap=el("div",{});
+  const p=ACCOUNTS[b.personId];
+  wrap.appendChild(el("div",{style:{background:"#ffebee",borderRadius:"1rem",padding:"1rem",marginBottom:"1rem"}},
+    el("div",{style:{display:"flex",gap:".5rem",alignItems:"center",marginBottom:".5rem"}},
+      el("span",{style:{background:"#e57373",color:"#fff",borderRadius:"2rem",padding:".2rem .7rem",fontSize:".8rem",fontWeight:700}},minToTime(b.startMin)+" → "+minToTime(b.endMin)),
+      el("span",{style:{fontWeight:700,fontSize:"1rem",color:"#c62828"}},"🔴 Non disponibile")
+    ),
+    el("div",{style:{fontSize:".88rem",color:"var(--muted)"}},"👤 "+(p?.name||"—")),
+    b.note?el("div",{style:{fontSize:".83rem",fontStyle:"italic",color:"#9b6b8a",marginTop:".3rem"}},"📝 "+b.note):txt("")
+  ));
+  wrap.appendChild(el("div",{class:"btn-row"},
+    el("button",{class:"btn btn-secondary btn-md",onClick:()=>{state.modal={type:"block",data:{...b}};render();}},"✏️ Modifica"),
+    el("button",{class:"btn btn-danger btn-md",onClick:()=>{
+      if(confirm("Eliminare questo blocco?")){state.blocks=state.blocks.filter(x=>x.id!==b.id);saveAll();state.modal=null;render();}
+    }},"🗑 Elimina")
+  ));
+  return wrap;
+}
+
+// ── BLOCK FORM ────────────────────────────────────────────────────────────────
+function renderBlockForm(d){
+  const isEdit=!!d.id;
+  const wrap=el("div",{});
+  wrap.appendChild(el("div",{style:{fontSize:".88rem",color:"var(--muted)",marginBottom:"1rem"}},(isEdit?"Modifica blocco per ":"Blocca un orario per ")+ACCOUNTS[d.personId].name+" il "+d.date));
+  const startIn=el("input",{type:"time",value:isEdit?minToTime(d.startMin):"09:00",min:"08:00",max:"20:00"});
+  const endIn=el("input",{type:"time",value:isEdit?minToTime(d.endMin):"10:00",min:"08:00",max:"20:00"});
+  const noteIn=el("input",{type:"text",placeholder:"Motivo (opzionale)…",value:d.note||""});
+  const g=el("div",{class:"grid2"});
+  g.appendChild(el("div",{class:"field"},el("label",{},"Dalle"),startIn));
+  g.appendChild(el("div",{class:"field"},el("label",{},"Alle"),endIn));
+  wrap.appendChild(g);
+  wrap.appendChild(el("div",{class:"field"},el("label",{},"Motivo"),noteIn));
+  wrap.appendChild(el("div",{class:"btn-row"},
+    el("button",{class:"btn btn-secondary btn-md",onClick:()=>{state.modal=null;render();}},"Annulla"),
+    el("button",{class:"btn btn-danger btn-md",onClick:()=>{
+      let startMin=timeToMin(startIn.value),endMin=timeToMin(endIn.value);
+      if(endMin<=startMin){alert("L'orario di fine deve essere dopo quello di inizio.");return;}
+      // Clamp to working hours 08:00-20:00 so blocks never render outside the grid
+      if(startMin<8*60||endMin>20*60){
+        if(!confirm("⚠️ L'orario è fuori dalla fascia 08:00-20:00.\n\nVerrà adattato automaticamente. Continuare?"))return;
+        startMin=Math.max(startMin,8*60);
+        endMin=Math.min(endMin,20*60);
+        if(endMin<=startMin){alert("Orario non valido dopo l'adattamento.");return;}
+      }
+      // Check if there's already an appointment in this slot
+      const conflict=state.appointments.find(a=>{
+        if(a.date!==d.date||a.personId!==d.personId)return false;
+        const svc=serviceById(a.serviceId);
+        const ast=timeToMin(a.time),aed=ast+(svc?.duration||60);
+        return startMin<aed&&endMin>ast;
+      });
+      if(conflict){
+        const cc=clientById(conflict.clientId);
+        if(!confirm("⚠️ Attenzione!\n\nC'è già un appuntamento con "+(cc?.name||"una cliente")+" alle "+conflict.time+" in questo orario.\n\nVuoi bloccare comunque?"))return;
+      }
+      if(isEdit){
+        state.blocks=state.blocks.map(x=>x.id===d.id?{...x,startMin,endMin,note:noteIn.value}:x);
+      }else{
+        state.blocks.push({id:uid(),personId:d.personId,date:d.date,startMin,endMin,note:noteIn.value});
+      }
+      saveAll();state.modal=null;render();
+    }},isEdit?"✓ Salva":"🔴 Blocca")
+  ));
+  return wrap;
+}
+
+// ── CLIENT FORM ───────────────────────────────────────────────────────────────
+function renderClientForm(d){
+  const form={...d};const wrap=el("div",{});
+  wrap.appendChild(fld("Nome e Cognome *","input",{type:"text",value:form.name||"",placeholder:"Es. Maria Rossi",onInput:e=>form.name=e.target.value}));
+  wrap.appendChild(fld("Telefono","input",{type:"tel",value:form.phone||"",placeholder:"+39 333 123 4567",onInput:e=>form.phone=e.target.value}));
+  wrap.appendChild(fld("Email","input",{type:"email",value:form.email||"",placeholder:"email@esempio.it",onInput:e=>form.email=e.target.value}));
+  const bdIn=el("input",{type:"date",value:form.birthday||""});
+  bdIn.addEventListener("input",e=>form.birthday=e.target.value);
+  bdIn.addEventListener("change",e=>form.birthday=e.target.value);
+  wrap.appendChild(el("div",{class:"field"},el("label",{},"Data di nascita"),bdIn));
+  wrap.appendChild(fld("Note","textarea",{value:form.notes||"",rows:2,onInput:e=>form.notes=e.target.value}));
+  wrap.appendChild(el("div",{class:"btn-row"},
+    el("button",{class:"btn btn-secondary btn-md",onClick:()=>{state.modal=null;render();}},"Annulla"),
+    el("button",{class:"btn btn-primary btn-md",onClick:()=>{
+      if(!form.name.trim())return;
+      if(form.id)state.clients=state.clients.map(c=>c.id===form.id?{...form}:c);
+      else state.clients.push({...form,id:uid(),createdAt:toKey(new Date())});
+      saveAll();state.modal=null;render();
+    }},"Salva")
+  ));
+  return wrap;
+}
+
+// ── SERVICE FORM ──────────────────────────────────────────────────────────────
+function renderServiceForm(d){
+  const form={...d};const wrap=el("div",{});
+  // Owner: admin can choose between Liya (estetica) or Parrucchiera
+  // Non-admin: owner is preset based on their role
+  if(state.user==="admin"){
+    const ownerSel=el("select",{});
+    [["liya","💅 Estetica (Liya)"],["parrucchiera","✂️ Parrucchiera (Valeria, Clara, Marie Claire)"]].forEach(([v,l])=>{
+      const o=el("option",{value:v},l);
+      if(v===(form.owner||"liya"))o.selected=true;
+      ownerSel.appendChild(o);
+    });
+    ownerSel.addEventListener("change",e=>form.owner=e.target.value);
+    wrap.appendChild(el("div",{class:"field"},el("label",{},"Appartiene a"),ownerSel));
+  } else {
+    // Auto-assign based on user role
+    form.owner=isParrucchiera(state.user)?"parrucchiera":"liya";
+  }
+  wrap.appendChild(fld("Nome servizio *","input",{type:"text",value:form.name||"",placeholder:"Es. Taglio",onInput:e=>form.name=e.target.value}));
+  const g=el("div",{class:"grid2"});
+  g.appendChild(fld("Durata (min)","input",{type:"number",value:String(form.duration||60),min:"5",onInput:e=>form.duration=+e.target.value}));
+  // Price only visible to admin or owner group
+  if(state.user==="admin"||(form.owner==="liya"&&state.user==="liya")||(form.owner==="parrucchiera"&&isParrucchiera(state.user))){
+    g.appendChild(fld("Prezzo (€)","input",{type:"number",value:String(form.price||0),min:"0",step:"0.5",onInput:e=>form.price=+e.target.value}));
+  }
+  wrap.appendChild(g);
+  wrap.appendChild(fld("Descrizione","input",{type:"text",value:form.description||"",placeholder:"Opzionale…",onInput:e=>form.description=e.target.value}));
+  wrap.appendChild(el("div",{class:"btn-row"},
+    el("button",{class:"btn btn-secondary btn-md",onClick:()=>{state.modal=null;render();}},"Annulla"),
+    el("button",{class:"btn btn-primary btn-md",onClick:()=>{
+      if(!form.name.trim())return;
+      if(form.id)state.services=state.services.map(s=>s.id===form.id?{...form}:s);
+      else state.services.push({...form,id:uid()});
+      saveAll();state.modal=null;render();
+    }},"Salva")
+  ));
+  return wrap;
+}
+
+// ── REALTIME SYNC ─────────────────────────────────────────────────────────────
+let userIsTyping=false;
+document.addEventListener("focusin", e=>{
+  if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.tagName==="SELECT")
+    userIsTyping=true;
+});
+document.addEventListener("focusout",()=>{ setTimeout(()=>userIsTyping=false, 300); });
+
+async function syncFromFirebase(){
+  if(!state.user) return;
+  if(state.modal) return;     // modal open — don't disturb
+  if(userIsTyping) return;    // user is typing — don't disturb
+  try{
+    const r=await fetch(`${FB_BASE}/moidom/data?key=${FB_API_KEY}`);
+    if(!r.ok) return;
+    const j=await r.json();
+    const d=fromFS(j.fields);
+    if(d.updatedAt && d.updatedAt===lastUpdatedAt) return; // nothing changed
+    lastUpdatedAt=d.updatedAt||"";
+    state.appointments=d.appointments||[];
+    state.clients=d.clients||[];
+    state.services=d.services||[...DEFAULT_SERVICES];
+    state.blocks=d.blocks||[];
+    render();
+    showSyncToast(); // notify that data was refreshed from cloud
+  }catch{}
+}
+
+function showSyncToast(){
+  let t=document.getElementById("sync-toast");
+  if(!t){
+    t=el("div",{id:"sync-toast",style:{
+      position:"fixed",top:"calc(var(--safe-top) + .5rem)",left:"50%",transform:"translateX(-50%)",
+      background:"rgba(61,26,46,.92)",color:"#f7dcea",padding:".4rem 1rem",borderRadius:"2rem",
+      fontSize:".78rem",fontWeight:600,zIndex:"500",boxShadow:"0 4px 16px rgba(0,0,0,.25)",
+      opacity:"0",transition:"opacity .3s",pointerEvents:"none"
+    }},"🔄 Aggiornato dal cloud");
+    document.body.appendChild(t);
+  }
+  t.style.opacity="1";
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{t.style.opacity="0";},2000);
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded",async()=>{
+  await loadAll();
+  document.getElementById("loader").style.display="none";
+  const savedUser=LOCAL.get("ba_session",null);
+  if(savedUser&&ACCOUNTS[savedUser]){
+    state.user=savedUser;
+    document.getElementById("app").style.display="flex";
+    render();
+  }else{
+    renderLogin();
+  }
+  // Start realtime sync every 15 seconds
+  setInterval(syncFromFirebase, 15000);
+});
+</script>
+</body>
+</html>
