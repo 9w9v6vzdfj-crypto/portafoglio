@@ -16,6 +16,7 @@
     --green: #34d399;
     --red: #f87171;
     --yellow: #fbbf24;
+    --purple: #a78bfa;
     --radius: 14px;
   }
   * { box-sizing: border-box; }
@@ -28,9 +29,21 @@
     padding: 24px 16px 64px;
   }
   .wrap { max-width: 720px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 24px; }
+  header { text-align: center; margin-bottom: 18px; }
   header h1 { margin: 0 0 4px; font-size: 1.7rem; letter-spacing: .5px; }
   header p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+  /* Tabs */
+  .tabs {
+    display: flex; gap: 6px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 6px; margin-bottom: 18px;
+  }
+  .tabs button {
+    flex: 1; background: transparent; border: none; color: var(--muted);
+    padding: 10px; border-radius: 9px; cursor: pointer; font-size: .95rem; font-weight: 600;
+    transition: background .15s, color .15s;
+  }
+  .tabs button.active { background: var(--accent); color: #0f172a; }
 
   .month-bar {
     display: flex; align-items: center; gap: 10px;
@@ -53,6 +66,7 @@
     align-items: center; justify-content: space-between;
   }
   .card h2 .tot { font-size: .9rem; color: var(--muted); font-weight: 500; }
+  .hint { font-size: .78rem; color: var(--muted); margin: -6px 0 12px; line-height: 1.4; }
 
   .row {
     display: grid; grid-template-columns: 1fr 130px 36px;
@@ -112,6 +126,7 @@
   .bd-row .v { font-variant-numeric: tabular-nums; }
   .bd-row.minus .v { color: var(--red); }
   .bd-row.plus .v { color: var(--green); }
+  .bd-row.set .v { color: var(--purple); }
   .bd-row.total { font-weight: 700; font-size: 1rem; margin-top: 6px;
     border-top: 1px solid var(--border); border-bottom: none; padding-top: 12px; }
 
@@ -130,16 +145,51 @@
     background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
     border-radius: 8px; padding: 8px 10px; width: 110px; text-align: right; font-size: .95rem;
   }
-  .footer-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .footer-actions { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
   .footer-actions button {
-    flex: 1; background: var(--panel-2); border: 1px solid var(--border);
+    flex: 1; min-width: 120px; background: var(--panel-2); border: 1px solid var(--border);
     color: var(--muted); border-radius: 8px; padding: 10px; cursor: pointer; font-size: .85rem;
   }
   .footer-actions button:hover { color: var(--text); border-color: var(--accent); }
-  .saved-tag { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 10px; }
+  .saved-tag { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 10px; min-height: 1em; }
+
+  /* Storico */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; text-align: center;
+  }
+  .stat .v { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .k { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+  .stat .v.green { color: var(--green); }
+  .stat .v.purple { color: var(--purple); }
+
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 150px; padding: 4px 0 0; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+  .bar {
+    width: 100%; max-width: 42px; border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, var(--accent), #2563eb); min-height: 3px;
+    transition: height .3s; cursor: default;
+  }
+  .bar.neg { background: linear-gradient(180deg, var(--red), #b91c1c); }
+  .bar-label { font-size: .68rem; color: var(--muted); white-space: nowrap; }
+
+  .hist-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .hist-table th, .hist-table td { padding: 9px 8px; text-align: right; border-bottom: 1px solid var(--border); }
+  .hist-table th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .3px; }
+  .hist-table td:first-child, .hist-table th:first-child { text-align: left; }
+  .hist-table tbody tr { cursor: pointer; }
+  .hist-table tbody tr:hover { background: rgba(56,189,248,.06); }
+  .hist-table .pos { color: var(--green); }
+  .hist-table .neg { color: var(--red); }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: .9rem; }
+
+  .hidden { display: none; }
   @media (max-width: 480px) {
     .row { grid-template-columns: 1fr 100px 32px; }
     .headline .amount { font-size: 2.1rem; }
+    .stat .v { font-size: 1.05rem; }
+    .hist-table th, .hist-table td { padding: 7px 4px; font-size: .8rem; }
   }
 </style>
 </head>
@@ -150,69 +200,121 @@
     <p>Quanto posso spendere davvero questo mese?</p>
   </header>
 
-  <div class="month-bar">
-    <label for="month">Mese</label>
-    <input type="month" id="month">
+  <div class="tabs">
+    <button id="tab-mese" class="active" data-tab="mese">Mese</button>
+    <button id="tab-storico" data-tab="storico">Storico</button>
   </div>
 
-  <!-- Entrate -->
-  <div class="card">
-    <h2>Entrate <span class="tot" id="tot-entrate">0 €</span></h2>
-    <div class="two-col">
-      <div class="field">
-        <label for="stip1">Stipendio 1</label>
-        <input type="number" id="stip1" inputmode="decimal" placeholder="0" step="0.01">
+  <!-- ============ VISTA MESE ============ -->
+  <div id="view-mese">
+    <div class="month-bar">
+      <label for="month">Mese</label>
+      <input type="month" id="month">
+    </div>
+
+    <!-- Entrate -->
+    <div class="card">
+      <h2>Entrate <span class="tot" id="tot-entrate">0 €</span></h2>
+      <div class="two-col">
+        <div class="field">
+          <label for="stip1">Stipendio 1</label>
+          <input type="number" id="stip1" inputmode="decimal" placeholder="0" step="0.01">
+        </div>
+        <div class="field">
+          <label for="stip2">Stipendio 2</label>
+          <input type="number" id="stip2" inputmode="decimal" placeholder="0" step="0.01">
+        </div>
       </div>
-      <div class="field">
-        <label for="stip2">Stipendio 2</label>
-        <input type="number" id="stip2" inputmode="decimal" placeholder="0" step="0.01">
+      <div id="entrate-extra" style="margin-top:12px"></div>
+      <button class="add-btn" data-add="entrate">+ Aggiungi altra entrata</button>
+    </div>
+
+    <!-- Spese fisse -->
+    <div class="card">
+      <h2>Spese fisse <span class="tot" id="tot-fisse">0 €</span></h2>
+      <div id="fisse-list"></div>
+      <button class="add-btn" data-add="fisse">+ Aggiungi spesa fissa</button>
+    </div>
+
+    <!-- Spese variabili -->
+    <div class="card">
+      <h2>Spese variabili <span class="tot" id="tot-variabili">0 €</span></h2>
+      <div id="variabili-list"></div>
+      <button class="add-btn" data-add="variabili">+ Aggiungi spesa variabile</button>
+    </div>
+
+    <!-- Spese impreviste -->
+    <div class="card">
+      <h2>Spese impreviste <span class="tot" id="tot-impreviste">0 €</span></h2>
+      <p class="hint">Spese capitate questo mese: manutenzione auto, dentista, riparazioni…</p>
+      <div id="impreviste-list"></div>
+      <button class="add-btn" data-add="impreviste">+ Aggiungi spesa imprevista</button>
+    </div>
+
+    <!-- Obiettivi -->
+    <div class="card">
+      <h2>Obiettivi e accantonamenti</h2>
+      <div class="settings-row">
+        <label for="risparmio">🎯 Obiettivo risparmio</label>
+        <input type="number" id="risparmio" inputmode="decimal" placeholder="1000" step="0.01">
+      </div>
+      <div class="settings-row">
+        <label for="fondo">🐖 Fondo imprevisti (al mese)</label>
+        <input type="number" id="fondo" inputmode="decimal" placeholder="0" step="0.01">
+      </div>
+      <p class="hint">Quanto metti da parte ogni mese per i futuri imprevisti. Si accumula e nello Storico vedi il fondo che cresce; le spese impreviste lo intaccano.</p>
+      <div class="settings-row">
+        <label for="riserva">🛟 Riserva sui conti (% entrate)</label>
+        <input type="number" id="riserva" inputmode="decimal" placeholder="5" step="0.1">
       </div>
     </div>
-    <div id="entrate-extra" style="margin-top:12px"></div>
-    <button class="add-btn" data-add="entrate">+ Aggiungi altra entrata</button>
+
+    <!-- Risultato -->
+    <div class="card result">
+      <div class="headline">
+        <div class="label">Questo mese puoi spendere</div>
+        <div class="amount pos" id="disponibile">0 €</div>
+        <div class="sub">per le altre spese (mangiare, svago, ecc.)</div>
+      </div>
+      <div class="breakdown" id="breakdown"></div>
+      <div id="warn-box"></div>
+      <div class="footer-actions">
+        <button id="copy-prev">📋 Copia mese precedente</button>
+        <button id="reset-month">🗑 Svuota mese</button>
+        <button id="copy-summary">📤 Copia riepilogo</button>
+      </div>
+      <div class="saved-tag" id="saved-tag"></div>
+    </div>
+
+    <!-- Backup -->
+    <div class="card">
+      <h2>Backup dei dati</h2>
+      <p class="hint">I dati restano solo in questo browser. Esportali in un file per non perderli se pulisci la cronologia o cambi dispositivo.</p>
+      <div class="footer-actions">
+        <button id="export-data">💾 Esporta backup</button>
+        <button id="import-data">📥 Importa backup</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json,.json" class="hidden">
+    </div>
   </div>
 
-  <!-- Spese fisse -->
-  <div class="card">
-    <h2>Spese fisse <span class="tot" id="tot-fisse">0 €</span></h2>
-    <div id="fisse-list"></div>
-    <button class="add-btn" data-add="fisse">+ Aggiungi spesa fissa</button>
-  </div>
+  <!-- ============ VISTA STORICO ============ -->
+  <div id="view-storico" class="hidden">
+    <div class="stats">
+      <div class="stat"><div class="v" id="st-mesi">0</div><div class="k">Mesi registrati</div></div>
+      <div class="stat"><div class="v green" id="st-media">0 €</div><div class="k">Disponibile medio</div></div>
+      <div class="stat"><div class="v purple" id="st-fondo">0 €</div><div class="k">Fondo imprevisti</div></div>
+    </div>
 
-  <!-- Spese variabili -->
-  <div class="card">
-    <h2>Spese variabili <span class="tot" id="tot-variabili">0 €</span></h2>
-    <div id="variabili-list"></div>
-    <button class="add-btn" data-add="variabili">+ Aggiungi spesa variabile</button>
-  </div>
+    <div class="card">
+      <h2>Andamento disponibile</h2>
+      <div class="chart" id="chart"></div>
+    </div>
 
-  <!-- Impostazioni -->
-  <div class="card">
-    <h2>Obiettivi</h2>
-    <div class="settings-row">
-      <label for="risparmio">🎯 Obiettivo risparmio</label>
-      <input type="number" id="risparmio" inputmode="decimal" placeholder="1000" step="0.01">
+    <div class="card">
+      <h2>Dettaglio mesi</h2>
+      <div id="hist-wrap"></div>
     </div>
-    <div class="settings-row">
-      <label for="riserva">🛟 Riserva sui conti (% entrate)</label>
-      <input type="number" id="riserva" inputmode="decimal" placeholder="5" step="0.1">
-    </div>
-  </div>
-
-  <!-- Risultato -->
-  <div class="card result">
-    <div class="headline">
-      <div class="label">Questo mese puoi spendere</div>
-      <div class="amount pos" id="disponibile">0 €</div>
-      <div class="sub">per le altre spese (mangiare, svago, ecc.)</div>
-    </div>
-    <div class="breakdown" id="breakdown"></div>
-    <div id="warn-box"></div>
-    <div class="footer-actions">
-      <button id="reset-month">🗑 Svuota mese</button>
-      <button id="copy-summary">📋 Copia riepilogo</button>
-    </div>
-    <div class="saved-tag" id="saved-tag"></div>
   </div>
 </div>
 
@@ -221,12 +323,13 @@
   "use strict";
 
   var STORAGE_KEY = "portafoglio.v1";
+  var LISTS = ["entrate", "fisse", "variabili", "impreviste"];
 
   // ---- Stato ----
-  var defaultMonthData = function () {
+  function defaultMonthData() {
     return {
       stip1: "", stip2: "",
-      entrate: [],                      // {nome, valore}
+      entrate: [],
       fisse: [
         { nome: "Mutuo", valore: "" },
         { nome: "Finanziamento", valore: "" }
@@ -234,16 +337,32 @@
       variabili: [
         { nome: "Bollette", valore: "" }
       ],
+      impreviste: [],
       risparmio: "1000",
+      fondo: "",
       riserva: "5"
     };
-  };
+  }
+
+  // Garantisce che un mese caricato (anche da versioni vecchie) abbia tutti i campi
+  function normalize(m) {
+    var def = defaultMonthData();
+    var out = {};
+    out.stip1 = m && m.stip1 != null ? m.stip1 : "";
+    out.stip2 = m && m.stip2 != null ? m.stip2 : "";
+    LISTS.forEach(function (k) {
+      out[k] = m && Array.isArray(m[k]) ? m[k] : (k === "fisse" || k === "variabili" ? def[k] : []);
+    });
+    out.risparmio = m && m.risparmio != null ? m.risparmio : def.risparmio;
+    out.fondo = m && m.fondo != null ? m.fondo : "";
+    out.riserva = m && m.riserva != null ? m.riserva : def.riserva;
+    return out;
+  }
 
   var store = load();
   var currentMonth = ymNow();
   if (!store.months[currentMonth]) store.months[currentMonth] = defaultMonthData();
 
-  // ---- Elementi ----
   var $ = function (id) { return document.getElementById(id); };
   var monthInput = $("month");
   monthInput.value = currentMonth;
@@ -254,7 +373,12 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var parsed = JSON.parse(raw);
-        if (parsed && parsed.months) return parsed;
+        if (parsed && parsed.months) {
+          Object.keys(parsed.months).forEach(function (k) {
+            parsed.months[k] = normalize(parsed.months[k]);
+          });
+          return parsed;
+        }
       }
     } catch (e) { /* ignora */ }
     return { months: {} };
@@ -262,15 +386,15 @@
   function save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-      flashSaved();
+      flashSaved("✓ Salvato automaticamente sul dispositivo");
     } catch (e) { /* ignora */ }
   }
   var savedTimer;
-  function flashSaved() {
+  function flashSaved(msg) {
     var tag = $("saved-tag");
-    tag.textContent = "✓ Salvato automaticamente sul dispositivo";
+    tag.textContent = msg;
     clearTimeout(savedTimer);
-    savedTimer = setTimeout(function () { tag.textContent = ""; }, 1500);
+    savedTimer = setTimeout(function () { tag.textContent = ""; }, 1800);
   }
 
   function data() { return store.months[currentMonth]; }
@@ -287,8 +411,43 @@
   function fmt(n) {
     return n.toLocaleString("it-IT", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " €";
   }
+  function sumList(m, listKey) {
+    return m[listKey].reduce(function (acc, it) { return acc + num(it.valore); }, 0);
+  }
+  function prevMonthKey(ym) {
+    var p = ym.split("-");
+    var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 2, 1);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+  function monthLabel(ym) {
+    var p = ym.split("-");
+    var mesi = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+    return mesi[parseInt(p[1], 10) - 1] + " '" + p[0].slice(2);
+  }
+  function daysInMonth(ym) {
+    var p = ym.split("-");
+    return new Date(parseInt(p[0], 10), parseInt(p[1], 10), 0).getDate();
+  }
 
-  // ---- Render righe dinamiche (entrate extra / fisse / variabili) ----
+  // Calcolo centrale per un mese
+  function compute(m) {
+    var entrate = num(m.stip1) + num(m.stip2) + sumList(m, "entrate");
+    var fisse = sumList(m, "fisse");
+    var variabili = sumList(m, "variabili");
+    var impreviste = sumList(m, "impreviste");
+    var risparmio = num(m.risparmio);
+    var fondo = num(m.fondo);
+    var pct = num(m.riserva);
+    var riserva = entrate * pct / 100;
+    var disponibile = entrate - fisse - variabili - impreviste - fondo - risparmio - riserva;
+    return {
+      entrate: entrate, fisse: fisse, variabili: variabili, impreviste: impreviste,
+      risparmio: risparmio, fondo: fondo, pct: pct, riserva: riserva,
+      spese: fisse + variabili + impreviste, disponibile: disponibile
+    };
+  }
+
+  // ---- Righe dinamiche ----
   function makeRow(item, listKey, idx) {
     var row = document.createElement("div");
     row.className = "row";
@@ -340,60 +499,52 @@
   }
 
   function renderAll() {
-    $("stip1").value = data().stip1 || "";
-    $("stip2").value = data().stip2 || "";
-    $("risparmio").value = data().risparmio || "";
-    $("riserva").value = data().riserva || "";
+    var d = data();
+    $("stip1").value = d.stip1 || "";
+    $("stip2").value = d.stip2 || "";
+    $("risparmio").value = d.risparmio || "";
+    $("fondo").value = d.fondo || "";
+    $("riserva").value = d.riserva || "";
     renderList("entrate", "entrate-extra");
     renderList("fisse", "fisse-list");
     renderList("variabili", "variabili-list");
+    renderList("impreviste", "impreviste-list");
   }
 
-  // ---- Calcolo ----
-  function sumList(listKey) {
-    return data()[listKey].reduce(function (acc, it) { return acc + num(it.valore); }, 0);
-  }
-
+  // ---- Calcolo + render risultato ----
   function recalc() {
-    var d = data();
-    var entrate = num(d.stip1) + num(d.stip2) + sumList("entrate");
-    var fisse = sumList("fisse");
-    var variabili = sumList("variabili");
-    var risparmio = num(d.risparmio);
-    var pctRiserva = num(d.riserva);
-    var riserva = entrate * pctRiserva / 100;
+    var r = compute(data());
 
-    var disponibile = entrate - fisse - variabili - risparmio - riserva;
-
-    $("tot-entrate").textContent = fmt(entrate);
-    $("tot-fisse").textContent = fmt(fisse);
-    $("tot-variabili").textContent = fmt(variabili);
+    $("tot-entrate").textContent = fmt(r.entrate);
+    $("tot-fisse").textContent = fmt(r.fisse);
+    $("tot-variabili").textContent = fmt(r.variabili);
+    $("tot-impreviste").textContent = fmt(r.impreviste);
 
     var amountEl = $("disponibile");
-    amountEl.textContent = fmt(disponibile);
-    amountEl.classList.toggle("pos", disponibile >= 0);
-    amountEl.classList.toggle("neg", disponibile < 0);
+    amountEl.textContent = fmt(r.disponibile);
+    amountEl.classList.toggle("pos", r.disponibile >= 0);
+    amountEl.classList.toggle("neg", r.disponibile < 0);
 
-    // Breakdown
     var bd = $("breakdown");
     bd.innerHTML = "";
-    bd.appendChild(bdRow("Entrate totali", fmt(entrate), "plus"));
-    bd.appendChild(bdRow("Spese fisse", "− " + fmt(fisse), "minus"));
-    bd.appendChild(bdRow("Spese variabili", "− " + fmt(variabili), "minus"));
-    bd.appendChild(bdRow("Obiettivo risparmio", "− " + fmt(risparmio), "minus"));
-    bd.appendChild(bdRow("Riserva conti (" + (pctRiserva || 0) + "%)", "− " + fmt(riserva), "minus"));
-    bd.appendChild(bdRow("Disponibile per altre spese", fmt(disponibile), "total"));
+    bd.appendChild(bdRow("Entrate totali", fmt(r.entrate), "plus"));
+    bd.appendChild(bdRow("Spese fisse", "− " + fmt(r.fisse), "minus"));
+    bd.appendChild(bdRow("Spese variabili", "− " + fmt(r.variabili), "minus"));
+    if (r.impreviste > 0) bd.appendChild(bdRow("Spese impreviste", "− " + fmt(r.impreviste), "minus"));
+    bd.appendChild(bdRow("Obiettivo risparmio", "− " + fmt(r.risparmio), "minus"));
+    if (r.fondo > 0) bd.appendChild(bdRow("Fondo imprevisti", "− " + fmt(r.fondo), "set"));
+    bd.appendChild(bdRow("Riserva conti (" + (r.pct || 0) + "%)", "− " + fmt(r.riserva), "minus"));
+    bd.appendChild(bdRow("Disponibile per altre spese", fmt(r.disponibile), "total"));
 
-    // Avvisi
     var warnBox = $("warn-box");
     warnBox.innerHTML = "";
-    if (entrate === 0) {
+    if (r.entrate === 0) {
       warnBox.appendChild(warn("Inserisci le tue entrate per calcolare il budget."));
-    } else if (disponibile < 0) {
-      warnBox.appendChild(warn("⚠️ Sei in negativo di " + fmt(Math.abs(disponibile)) +
+    } else if (r.disponibile < 0) {
+      warnBox.appendChild(warn("⚠️ Sei in negativo di " + fmt(Math.abs(r.disponibile)) +
         ". Le spese e gli obiettivi superano le entrate del mese."));
     } else {
-      var perGiorno = disponibile / daysInMonth(currentMonth);
+      var perGiorno = r.disponibile / daysInMonth(currentMonth);
       warnBox.appendChild(warn("≈ " + fmt(perGiorno) + " al giorno per il resto delle spese."));
     }
   }
@@ -412,9 +563,103 @@
     d.textContent = msg;
     return d;
   }
-  function daysInMonth(ym) {
-    var parts = ym.split("-");
-    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10), 0).getDate();
+
+  // ---- Storico ----
+  function sortedMonthKeys() {
+    return Object.keys(store.months).sort();
+  }
+
+  function renderStorico() {
+    var keys = sortedMonthKeys();
+
+    // Statistiche
+    var totDisp = 0, conti = 0, fondoAcc = 0;
+    keys.forEach(function (k) {
+      var r = compute(store.months[k]);
+      // considera "registrato" un mese con almeno qualche dato
+      if (r.entrate > 0 || r.spese > 0) {
+        totDisp += r.disponibile; conti++;
+      }
+      fondoAcc += r.fondo - r.impreviste; // accantonato meno imprevisti effettivi
+    });
+    $("st-mesi").textContent = conti;
+    $("st-media").textContent = conti ? fmt(totDisp / conti) : "0 €";
+    var fondoEl = $("st-fondo");
+    fondoEl.textContent = fmt(fondoAcc);
+    fondoEl.classList.toggle("green", fondoAcc >= 0);
+
+    // Grafico (ultimi 12 mesi con dati)
+    var withData = keys.filter(function (k) {
+      var r = compute(store.months[k]);
+      return r.entrate > 0 || r.spese > 0;
+    }).slice(-12);
+
+    var chart = $("chart");
+    chart.innerHTML = "";
+    if (!withData.length) {
+      chart.innerHTML = '<div class="empty" style="width:100%">Nessun dato ancora. Compila qualche mese nella scheda “Mese”.</div>';
+    } else {
+      var vals = withData.map(function (k) { return compute(store.months[k]).disponibile; });
+      var maxAbs = Math.max.apply(null, vals.map(Math.abs).concat([1]));
+      withData.forEach(function (k, i) {
+        var v = vals[i];
+        var h = Math.max(3, Math.round(Math.abs(v) / maxAbs * 120));
+        var wrap = document.createElement("div");
+        wrap.className = "bar-wrap";
+        var bar = document.createElement("div");
+        bar.className = "bar" + (v < 0 ? " neg" : "");
+        bar.style.height = h + "px";
+        bar.title = monthLabel(k) + ": " + fmt(v);
+        var lbl = document.createElement("div");
+        lbl.className = "bar-label";
+        lbl.textContent = monthLabel(k);
+        wrap.appendChild(bar);
+        wrap.appendChild(lbl);
+        chart.appendChild(wrap);
+      });
+    }
+
+    // Tabella
+    var wrap = $("hist-wrap");
+    if (!keys.length) {
+      wrap.innerHTML = '<div class="empty">Ancora nessun mese registrato.</div>';
+      return;
+    }
+    var rows = keys.slice().reverse().map(function (k) {
+      var r = compute(store.months[k]);
+      var cls = r.disponibile >= 0 ? "pos" : "neg";
+      return '<tr data-month="' + k + '">' +
+        '<td>' + monthLabel(k) + '</td>' +
+        '<td>' + fmt(r.entrate) + '</td>' +
+        '<td>' + fmt(r.spese) + '</td>' +
+        '<td class="' + cls + '">' + fmt(r.disponibile) + '</td>' +
+      '</tr>';
+    }).join("");
+    wrap.innerHTML =
+      '<table class="hist-table"><thead><tr>' +
+      '<th>Mese</th><th>Entrate</th><th>Spese</th><th>Disponibile</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    // click su riga → apri quel mese
+    wrap.querySelectorAll("tbody tr").forEach(function (tr) {
+      tr.addEventListener("click", function () {
+        currentMonth = tr.getAttribute("data-month");
+        monthInput.value = currentMonth;
+        renderAll();
+        recalc();
+        switchTab("mese");
+      });
+    });
+  }
+
+  // ---- Tabs ----
+  function switchTab(name) {
+    $("tab-mese").classList.toggle("active", name === "mese");
+    $("tab-storico").classList.toggle("active", name === "storico");
+    $("view-mese").classList.toggle("hidden", name !== "mese");
+    $("view-storico").classList.toggle("hidden", name !== "storico");
+    if (name === "storico") renderStorico();
+    window.scrollTo(0, 0);
   }
 
   // ---- Save debounce ----
@@ -428,6 +673,7 @@
   $("stip1").addEventListener("input", function (e) { data().stip1 = e.target.value; saveDebounced(); recalc(); });
   $("stip2").addEventListener("input", function (e) { data().stip2 = e.target.value; saveDebounced(); recalc(); });
   $("risparmio").addEventListener("input", function (e) { data().risparmio = e.target.value; saveDebounced(); recalc(); });
+  $("fondo").addEventListener("input", function (e) { data().fondo = e.target.value; saveDebounced(); recalc(); });
   $("riserva").addEventListener("input", function (e) { data().riserva = e.target.value; saveDebounced(); recalc(); });
 
   document.querySelectorAll("[data-add]").forEach(function (btn) {
@@ -436,11 +682,14 @@
       data()[key].push({ nome: "", valore: "" });
       save();
       renderAll();
-      // focus sull'ultima riga aggiunta
       var containerId = key === "entrate" ? "entrate-extra" : key + "-list";
       var inputs = $(containerId).querySelectorAll('input[type="text"]');
       if (inputs.length) inputs[inputs.length - 1].focus();
     });
+  });
+
+  document.querySelectorAll("[data-tab]").forEach(function (btn) {
+    btn.addEventListener("click", function () { switchTab(btn.getAttribute("data-tab")); });
   });
 
   monthInput.addEventListener("change", function () {
@@ -449,6 +698,23 @@
     save();
     renderAll();
     recalc();
+  });
+
+  $("copy-prev").addEventListener("click", function () {
+    var pk = prevMonthKey(currentMonth);
+    var prev = store.months[pk];
+    if (!prev) { flashSaved("Nessun dato nel mese precedente"); return; }
+    if (!confirm("Copiare spese fisse, variabili e obiettivi da " + monthLabel(pk) + "? (le voci attuali verranno sostituite)")) return;
+    var d = data();
+    d.fisse = JSON.parse(JSON.stringify(prev.fisse));
+    d.variabili = JSON.parse(JSON.stringify(prev.variabili));
+    d.risparmio = prev.risparmio;
+    d.fondo = prev.fondo;
+    d.riserva = prev.riserva;
+    save();
+    renderAll();
+    recalc();
+    flashSaved("✓ Copiato da " + monthLabel(pk));
   });
 
   $("reset-month").addEventListener("click", function () {
@@ -461,30 +727,67 @@
   });
 
   $("copy-summary").addEventListener("click", function () {
-    var d = data();
-    var entrate = num(d.stip1) + num(d.stip2) + sumList("entrate");
-    var fisse = sumList("fisse"), variabili = sumList("variabili");
-    var risparmio = num(d.risparmio), riserva = entrate * num(d.riserva) / 100;
-    var disp = entrate - fisse - variabili - risparmio - riserva;
+    var r = compute(data());
     var txt =
       "Portafoglio — " + currentMonth + "\n" +
-      "Entrate: " + fmt(entrate) + "\n" +
-      "Spese fisse: " + fmt(fisse) + "\n" +
-      "Spese variabili: " + fmt(variabili) + "\n" +
-      "Obiettivo risparmio: " + fmt(risparmio) + "\n" +
-      "Riserva " + (num(d.riserva) || 0) + "%: " + fmt(riserva) + "\n" +
-      "→ Disponibile: " + fmt(disp);
-    var done = function () {
-      var tag = $("saved-tag");
-      tag.textContent = "✓ Riepilogo copiato";
-      clearTimeout(savedTimer);
-      savedTimer = setTimeout(function () { tag.textContent = ""; }, 1500);
-    };
+      "Entrate: " + fmt(r.entrate) + "\n" +
+      "Spese fisse: " + fmt(r.fisse) + "\n" +
+      "Spese variabili: " + fmt(r.variabili) + "\n" +
+      "Spese impreviste: " + fmt(r.impreviste) + "\n" +
+      "Obiettivo risparmio: " + fmt(r.risparmio) + "\n" +
+      "Fondo imprevisti: " + fmt(r.fondo) + "\n" +
+      "Riserva " + (r.pct || 0) + "%: " + fmt(r.riserva) + "\n" +
+      "→ Disponibile: " + fmt(r.disponibile);
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(txt).then(done, function () { alert(txt); });
+      navigator.clipboard.writeText(txt).then(
+        function () { flashSaved("✓ Riepilogo copiato"); },
+        function () { alert(txt); }
+      );
     } else {
       alert(txt);
     }
+  });
+
+  // ---- Backup ----
+  $("export-data").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "portafoglio-backup-" + ymNow() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    flashSaved("✓ Backup esportato");
+  });
+
+  $("import-data").addEventListener("click", function () { $("import-file").click(); });
+  $("import-file").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var parsed = JSON.parse(reader.result);
+        if (!parsed || !parsed.months) throw new Error("formato non valido");
+        if (!confirm("Importare questo backup? Sostituirà tutti i dati attuali.")) return;
+        Object.keys(parsed.months).forEach(function (k) {
+          parsed.months[k] = normalize(parsed.months[k]);
+        });
+        store = parsed;
+        if (!store.months[currentMonth]) store.months[currentMonth] = defaultMonthData();
+        save();
+        renderAll();
+        recalc();
+        flashSaved("✓ Backup importato");
+      } catch (err) {
+        alert("File non valido: " + err.message);
+      } finally {
+        $("import-file").value = "";
+      }
+    };
+    reader.readAsText(file);
   });
 
   // ---- Avvio ----
