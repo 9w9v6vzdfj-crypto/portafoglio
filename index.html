@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portafoglio — Tracciatore Spese</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #273549;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #34d399;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(160deg, #0f172a 0%, #131f38 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 64px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { margin: 0 0 4px; font-size: 1.7rem; letter-spacing: .5px; }
+  header p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+  .month-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 18px;
+  }
+  .month-bar label { font-size: .85rem; color: var(--muted); }
+  .month-bar input[type="month"] {
+    flex: 1; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 1rem;
+    color-scheme: dark;
+  }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px; margin-bottom: 18px;
+  }
+  .card h2 {
+    margin: 0 0 14px; font-size: 1.05rem; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+  .card h2 .tot { font-size: .9rem; color: var(--muted); font-weight: 500; }
+
+  .row {
+    display: grid; grid-template-columns: 1fr 130px 36px;
+    gap: 8px; margin-bottom: 8px; align-items: center;
+  }
+  .row input {
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 9px 11px; font-size: .95rem;
+    width: 100%;
+  }
+  .row input:focus { outline: none; border-color: var(--accent); }
+  .row input[type="number"] { text-align: right; }
+  .row .del {
+    background: transparent; border: none; color: var(--muted);
+    font-size: 1.2rem; cursor: pointer; border-radius: 8px; padding: 4px;
+    transition: color .15s, background .15s;
+  }
+  .row .del:hover { color: var(--red); background: rgba(248,113,113,.12); }
+
+  .add-btn {
+    background: transparent; border: 1px dashed var(--border); color: var(--accent);
+    border-radius: 8px; padding: 9px; width: 100%; cursor: pointer;
+    font-size: .9rem; margin-top: 4px; transition: border-color .15s, background .15s;
+  }
+  .add-btn:hover { border-color: var(--accent); background: rgba(56,189,248,.08); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 5px; }
+  .field input {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 10px 12px; font-size: 1rem; width: 100%; text-align: right;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+
+  /* Result */
+  .result {
+    background: linear-gradient(160deg, #1e293b 0%, #1a2a44 100%);
+    border: 1px solid var(--border);
+  }
+  .headline {
+    text-align: center; padding: 8px 0 18px; border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .headline .label { color: var(--muted); font-size: .9rem; margin-bottom: 6px; }
+  .headline .amount { font-size: 2.6rem; font-weight: 700; line-height: 1; }
+  .headline .amount.pos { color: var(--green); }
+  .headline .amount.neg { color: var(--red); }
+  .headline .sub { color: var(--muted); font-size: .82rem; margin-top: 8px; }
+
+  .breakdown { display: flex; flex-direction: column; gap: 2px; }
+  .bd-row {
+    display: flex; justify-content: space-between; padding: 8px 4px;
+    font-size: .92rem; border-bottom: 1px solid rgba(51,65,85,.5);
+  }
+  .bd-row:last-child { border-bottom: none; }
+  .bd-row .k { color: var(--muted); }
+  .bd-row .v { font-variant-numeric: tabular-nums; }
+  .bd-row.minus .v { color: var(--red); }
+  .bd-row.plus .v { color: var(--green); }
+  .bd-row.total { font-weight: 700; font-size: 1rem; margin-top: 6px;
+    border-top: 1px solid var(--border); border-bottom: none; padding-top: 12px; }
+
+  .warn {
+    background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.4);
+    color: var(--yellow); border-radius: 10px; padding: 10px 12px;
+    font-size: .85rem; margin-top: 14px; text-align: center;
+  }
+
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 8px 0;
+  }
+  .settings-row label { font-size: .9rem; color: var(--muted); }
+  .settings-row input {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; width: 110px; text-align: right; font-size: .95rem;
+  }
+  .footer-actions { display: flex; gap: 10px; margin-top: 6px; }
+  .footer-actions button {
+    flex: 1; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--muted); border-radius: 8px; padding: 10px; cursor: pointer; font-size: .85rem;
+  }
+  .footer-actions button:hover { color: var(--text); border-color: var(--accent); }
+  .saved-tag { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 10px; }
+  @media (max-width: 480px) {
+    .row { grid-template-columns: 1fr 100px 32px; }
+    .headline .amount { font-size: 2.1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💰 Portafoglio</h1>
+    <p>Quanto posso spendere davvero questo mese?</p>
+  </header>
+
+  <div class="month-bar">
+    <label for="month">Mese</label>
+    <input type="month" id="month">
+  </div>
+
+  <!-- Entrate -->
+  <div class="card">
+    <h2>Entrate <span class="tot" id="tot-entrate">0 €</span></h2>
+    <div class="two-col">
+      <div class="field">
+        <label for="stip1">Stipendio 1</label>
+        <input type="number" id="stip1" inputmode="decimal" placeholder="0" step="0.01">
+      </div>
+      <div class="field">
+        <label for="stip2">Stipendio 2</label>
+        <input type="number" id="stip2" inputmode="decimal" placeholder="0" step="0.01">
+      </div>
+    </div>
+    <div id="entrate-extra" style="margin-top:12px"></div>
+    <button class="add-btn" data-add="entrate">+ Aggiungi altra entrata</button>
+  </div>
+
+  <!-- Spese fisse -->
+  <div class="card">
+    <h2>Spese fisse <span class="tot" id="tot-fisse">0 €</span></h2>
+    <div id="fisse-list"></div>
+    <button class="add-btn" data-add="fisse">+ Aggiungi spesa fissa</button>
+  </div>
+
+  <!-- Spese variabili -->
+  <div class="card">
+    <h2>Spese variabili <span class="tot" id="tot-variabili">0 €</span></h2>
+    <div id="variabili-list"></div>
+    <button class="add-btn" data-add="variabili">+ Aggiungi spesa variabile</button>
+  </div>
+
+  <!-- Impostazioni -->
+  <div class="card">
+    <h2>Obiettivi</h2>
+    <div class="settings-row">
+      <label for="risparmio">🎯 Obiettivo risparmio</label>
+      <input type="number" id="risparmio" inputmode="decimal" placeholder="1000" step="0.01">
+    </div>
+    <div class="settings-row">
+      <label for="riserva">🛟 Riserva sui conti (% entrate)</label>
+      <input type="number" id="riserva" inputmode="decimal" placeholder="5" step="0.1">
+    </div>
+  </div>
+
+  <!-- Risultato -->
+  <div class="card result">
+    <div class="headline">
+      <div class="label">Questo mese puoi spendere</div>
+      <div class="amount pos" id="disponibile">0 €</div>
+      <div class="sub">per le altre spese (mangiare, svago, ecc.)</div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+    <div id="warn-box"></div>
+    <div class="footer-actions">
+      <button id="reset-month">🗑 Svuota mese</button>
+      <button id="copy-summary">📋 Copia riepilogo</button>
+    </div>
+    <div class="saved-tag" id="saved-tag"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "portafoglio.v1";
+
+  // ---- Stato ----
+  var defaultMonthData = function () {
+    return {
+      stip1: "", stip2: "",
+      entrate: [],                      // {nome, valore}
+      fisse: [
+        { nome: "Mutuo", valore: "" },
+        { nome: "Finanziamento", valore: "" }
+      ],
+      variabili: [
+        { nome: "Bollette", valore: "" }
+      ],
+      risparmio: "1000",
+      riserva: "5"
+    };
+  };
+
+  var store = load();
+  var currentMonth = ymNow();
+  if (!store.months[currentMonth]) store.months[currentMonth] = defaultMonthData();
+
+  // ---- Elementi ----
+  var $ = function (id) { return document.getElementById(id); };
+  var monthInput = $("month");
+  monthInput.value = currentMonth;
+
+  // ---- Persistenza ----
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.months) return parsed;
+      }
+    } catch (e) { /* ignora */ }
+    return { months: {} };
+  }
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+      flashSaved();
+    } catch (e) { /* ignora */ }
+  }
+  var savedTimer;
+  function flashSaved() {
+    var tag = $("saved-tag");
+    tag.textContent = "✓ Salvato automaticamente sul dispositivo";
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(function () { tag.textContent = ""; }, 1500);
+  }
+
+  function data() { return store.months[currentMonth]; }
+
+  // ---- Helpers ----
+  function ymNow() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+  function num(v) {
+    var n = parseFloat(String(v).replace(",", "."));
+    return isFinite(n) ? n : 0;
+  }
+  function fmt(n) {
+    return n.toLocaleString("it-IT", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " €";
+  }
+
+  // ---- Render righe dinamiche (entrate extra / fisse / variabili) ----
+  function makeRow(item, listKey, idx) {
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var nome = document.createElement("input");
+    nome.type = "text";
+    nome.placeholder = "Voce";
+    nome.value = item.nome || "";
+    nome.addEventListener("input", function () {
+      data()[listKey][idx].nome = nome.value;
+      saveDebounced();
+    });
+
+    var val = document.createElement("input");
+    val.type = "number";
+    val.inputMode = "decimal";
+    val.step = "0.01";
+    val.placeholder = "0";
+    val.value = item.valore || "";
+    val.addEventListener("input", function () {
+      data()[listKey][idx].valore = val.value;
+      saveDebounced();
+      recalc();
+    });
+
+    var del = document.createElement("button");
+    del.className = "del";
+    del.innerHTML = "&times;";
+    del.title = "Rimuovi voce";
+    del.addEventListener("click", function () {
+      data()[listKey].splice(idx, 1);
+      save();
+      renderAll();
+      recalc();
+    });
+
+    row.appendChild(nome);
+    row.appendChild(val);
+    row.appendChild(del);
+    return row;
+  }
+
+  function renderList(listKey, containerId) {
+    var container = $(containerId);
+    container.innerHTML = "";
+    data()[listKey].forEach(function (item, idx) {
+      container.appendChild(makeRow(item, listKey, idx));
+    });
+  }
+
+  function renderAll() {
+    $("stip1").value = data().stip1 || "";
+    $("stip2").value = data().stip2 || "";
+    $("risparmio").value = data().risparmio || "";
+    $("riserva").value = data().riserva || "";
+    renderList("entrate", "entrate-extra");
+    renderList("fisse", "fisse-list");
+    renderList("variabili", "variabili-list");
+  }
+
+  // ---- Calcolo ----
+  function sumList(listKey) {
+    return data()[listKey].reduce(function (acc, it) { return acc + num(it.valore); }, 0);
+  }
+
+  function recalc() {
+    var d = data();
+    var entrate = num(d.stip1) + num(d.stip2) + sumList("entrate");
+    var fisse = sumList("fisse");
+    var variabili = sumList("variabili");
+    var risparmio = num(d.risparmio);
+    var pctRiserva = num(d.riserva);
+    var riserva = entrate * pctRiserva / 100;
+
+    var disponibile = entrate - fisse - variabili - risparmio - riserva;
+
+    $("tot-entrate").textContent = fmt(entrate);
+    $("tot-fisse").textContent = fmt(fisse);
+    $("tot-variabili").textContent = fmt(variabili);
+
+    var amountEl = $("disponibile");
+    amountEl.textContent = fmt(disponibile);
+    amountEl.classList.toggle("pos", disponibile >= 0);
+    amountEl.classList.toggle("neg", disponibile < 0);
+
+    // Breakdown
+    var bd = $("breakdown");
+    bd.innerHTML = "";
+    bd.appendChild(bdRow("Entrate totali", fmt(entrate), "plus"));
+    bd.appendChild(bdRow("Spese fisse", "− " + fmt(fisse), "minus"));
+    bd.appendChild(bdRow("Spese variabili", "− " + fmt(variabili), "minus"));
+    bd.appendChild(bdRow("Obiettivo risparmio", "− " + fmt(risparmio), "minus"));
+    bd.appendChild(bdRow("Riserva conti (" + (pctRiserva || 0) + "%)", "− " + fmt(riserva), "minus"));
+    bd.appendChild(bdRow("Disponibile per altre spese", fmt(disponibile), "total"));
+
+    // Avvisi
+    var warnBox = $("warn-box");
+    warnBox.innerHTML = "";
+    if (entrate === 0) {
+      warnBox.appendChild(warn("Inserisci le tue entrate per calcolare il budget."));
+    } else if (disponibile < 0) {
+      warnBox.appendChild(warn("⚠️ Sei in negativo di " + fmt(Math.abs(disponibile)) +
+        ". Le spese e gli obiettivi superano le entrate del mese."));
+    } else {
+      var perGiorno = disponibile / daysInMonth(currentMonth);
+      warnBox.appendChild(warn("≈ " + fmt(perGiorno) + " al giorno per il resto delle spese."));
+    }
+  }
+
+  function bdRow(k, v, cls) {
+    var row = document.createElement("div");
+    row.className = "bd-row" + (cls ? " " + cls : "");
+    var kEl = document.createElement("span"); kEl.className = "k"; kEl.textContent = k;
+    var vEl = document.createElement("span"); vEl.className = "v"; vEl.textContent = v;
+    row.appendChild(kEl); row.appendChild(vEl);
+    return row;
+  }
+  function warn(msg) {
+    var d = document.createElement("div");
+    d.className = "warn";
+    d.textContent = msg;
+    return d;
+  }
+  function daysInMonth(ym) {
+    var parts = ym.split("-");
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10), 0).getDate();
+  }
+
+  // ---- Save debounce ----
+  var saveTimer;
+  function saveDebounced() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 350);
+  }
+
+  // ---- Eventi ----
+  $("stip1").addEventListener("input", function (e) { data().stip1 = e.target.value; saveDebounced(); recalc(); });
+  $("stip2").addEventListener("input", function (e) { data().stip2 = e.target.value; saveDebounced(); recalc(); });
+  $("risparmio").addEventListener("input", function (e) { data().risparmio = e.target.value; saveDebounced(); recalc(); });
+  $("riserva").addEventListener("input", function (e) { data().riserva = e.target.value; saveDebounced(); recalc(); });
+
+  document.querySelectorAll("[data-add]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var key = btn.getAttribute("data-add");
+      data()[key].push({ nome: "", valore: "" });
+      save();
+      renderAll();
+      // focus sull'ultima riga aggiunta
+      var containerId = key === "entrate" ? "entrate-extra" : key + "-list";
+      var inputs = $(containerId).querySelectorAll('input[type="text"]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    });
+  });
+
+  monthInput.addEventListener("change", function () {
+    currentMonth = monthInput.value || ymNow();
+    if (!store.months[currentMonth]) store.months[currentMonth] = defaultMonthData();
+    save();
+    renderAll();
+    recalc();
+  });
+
+  $("reset-month").addEventListener("click", function () {
+    if (confirm("Svuotare tutti i dati di questo mese?")) {
+      store.months[currentMonth] = defaultMonthData();
+      save();
+      renderAll();
+      recalc();
+    }
+  });
+
+  $("copy-summary").addEventListener("click", function () {
+    var d = data();
+    var entrate = num(d.stip1) + num(d.stip2) + sumList("entrate");
+    var fisse = sumList("fisse"), variabili = sumList("variabili");
+    var risparmio = num(d.risparmio), riserva = entrate * num(d.riserva) / 100;
+    var disp = entrate - fisse - variabili - risparmio - riserva;
+    var txt =
+      "Portafoglio — " + currentMonth + "\n" +
+      "Entrate: " + fmt(entrate) + "\n" +
+      "Spese fisse: " + fmt(fisse) + "\n" +
+      "Spese variabili: " + fmt(variabili) + "\n" +
+      "Obiettivo risparmio: " + fmt(risparmio) + "\n" +
+      "Riserva " + (num(d.riserva) || 0) + "%: " + fmt(riserva) + "\n" +
+      "→ Disponibile: " + fmt(disp);
+    var done = function () {
+      var tag = $("saved-tag");
+      tag.textContent = "✓ Riepilogo copiato";
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(function () { tag.textContent = ""; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { alert(txt); });
+    } else {
+      alert(txt);
+    }
+  });
+
+  // ---- Avvio ----
+  renderAll();
+  recalc();
+})();
+</script>
+</body>
+</html>
