@@ -359,9 +359,59 @@
     return out;
   }
 
+  // Copia le righe di una lista mantenendo i nomi ma azzerando gli importi,
+  // così le voci restano pronte da compilare nel mese nuovo.
+  function blankRows(list) {
+    return (list || []).map(function (it) { return { nome: it.nome, valore: "" }; });
+  }
+
+  // Un mese "ha dati" se c'è almeno uno stipendio o un importo inserito.
+  // Serve per ignorare i mesi vuoti creati in automatico all'apertura.
+  function hasData(m) {
+    if (!m) return false;
+    if (num(m.stip1) > 0 || num(m.stip2) > 0) return true;
+    return LISTS.some(function (k) {
+      return (m[k] || []).some(function (it) { return num(it.valore) > 0; });
+    });
+  }
+
+  // Crea un mese nuovo ereditando dal mese con dati più recente prima di `key`.
+  // Solo le SPESE FISSE si riportano con i loro importi; tutte le altre
+  // categorie (stipendi, entrate, variabili, impreviste) restano come voci
+  // ma con importo vuoto. Gli obiettivi (risparmio, fondo, riserva) si mantengono.
+  function seedMonth(key) {
+    var prev = null;
+    Object.keys(store.months).forEach(function (k) {
+      if (k < key && hasData(store.months[k]) && (prev === null || k > prev)) prev = k;
+    });
+    if (!prev) return defaultMonthData();
+    var src = store.months[prev];
+    var m = defaultMonthData();
+    m.stip1 = "";
+    m.stip2 = "";
+    m.entrate = blankRows(src.entrate);
+    m.fisse = JSON.parse(JSON.stringify(src.fisse)); // spese fisse: nomi + importi
+    m.variabili = blankRows(src.variabili);
+    m.impreviste = blankRows(src.impreviste);
+    m.risparmio = src.risparmio;
+    m.fondo = src.fondo;
+    m.riserva = src.riserva;
+    return m;
+  }
+
   var store = load();
   var currentMonth = ymNow();
-  if (!store.months[currentMonth]) store.months[currentMonth] = defaultMonthData();
+  var seededAtInit = false;
+  if (!store.months[currentMonth]) {
+    // mese mai aperto: crealo ereditando dal mese con dati più recente
+    store.months[currentMonth] = seedMonth(currentMonth);
+    seededAtInit = hasData(store.months[currentMonth]);
+  } else if (!hasData(store.months[currentMonth])) {
+    // mese già presente ma vuoto (es. creato in automatico dal mese scorso):
+    // riportaci le spese fisse dal mese con dati più recente
+    var seeded = seedMonth(currentMonth);
+    if (hasData(seeded)) { store.months[currentMonth] = seeded; seededAtInit = true; }
+  }
 
   var $ = function (id) { return document.getElementById(id); };
   var monthInput = $("month");
@@ -694,7 +744,7 @@
 
   monthInput.addEventListener("change", function () {
     currentMonth = monthInput.value || ymNow();
-    if (!store.months[currentMonth]) store.months[currentMonth] = defaultMonthData();
+    if (!store.months[currentMonth]) store.months[currentMonth] = seedMonth(currentMonth);
     save();
     renderAll();
     recalc();
@@ -793,6 +843,7 @@
   // ---- Avvio ----
   renderAll();
   recalc();
+  if (seededAtInit) save(); // rende durevole il travaso delle spese fisse nel mese nuovo
 })();
 </script>
 </body>
